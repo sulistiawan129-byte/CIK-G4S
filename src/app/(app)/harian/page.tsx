@@ -13,8 +13,13 @@ function cmpTxt(v: number, avg: number) {
   if (!avg) return null;
   const p = ((v - avg) / avg) * 100;
   if (Math.abs(p) < 15) return <em className="n">wajar</em>;
-  return <em className={p > 0 ? "hi" : "lo"}>{p > 0 ? "+" : ""}{Math.round(p)}% dari rata-rata</em>;
+  return <em className={p > 0 ? "hi" : "lo"}>{p > 0 ? "+" : ""}{Math.round(p)}%</em>;
 }
+
+const GROUPS: { t: string; keys: CatKey[]; sum?: boolean }[] = [
+  { t: "Kendaraan roda empat", keys: ["karyawan", "tamu", "kontraktor"], sum: true },
+  { t: "Motor & pengunjung", keys: ["motor", "visitor"] },
+];
 
 function Harian() {
   const { D, setD, error, siteId, canWrite, toast, fail } = useApp();
@@ -24,6 +29,8 @@ function Harian() {
   const [drawer, setDrawer] = useState(false);
   const [dk, setDk] = useState<CatKey>("karyawan");
   const { set, clear, val } = useDrafts();
+  const [saving, setSaving] = useState(0);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const inited = useRef<string | null>(null);
 
   useEffect(() => {
@@ -50,7 +57,11 @@ function Harian() {
     set(key, raw);
     setD((p) => { if (!p) return p; const daily = { ...p.daily, [k]: [...p.daily[k]] }; daily[k][i] = v; const f = [...p.filled]; f[i] = true; return { ...p, daily, filled: f }; });
     setFlash({ d: sel, n: Date.now() });
-    debounced(key, async () => { await api.setDaily(siteId, day, k, v); clear(key); }, 450, fail);
+    setSaving((n) => n + 1);
+    debounced(key, async () => {
+      try { await api.setDaily(siteId, day, k, v); clear(key); setSavedAt(Date.now()); }
+      finally { setSaving((n) => Math.max(0, n - 1)); }
+    }, 450, (e) => { setSaving(0); fail(e); });
   }
   function step(k: CatKey, dl: number) { change(k, String(Math.max(0, (parseInt(val(`${sel}:${k}`, D!.daily[k][sel - 1])) || 0) + dl))); }
   function onKey(e: React.KeyboardEvent<HTMLInputElement>, k: CatKey) {
@@ -89,26 +100,53 @@ function Harian() {
           })}
         </div>
 
-        <fieldset className="panel ro" disabled={!canWrite} key={sel} style={{ animation: "viewin .35s both" }}>
-          <div className="dayhead"><h2>{DOWL[x.dow]}, {sel} {name}</h2><span className={`chip ${x.we ? "we" : ""}`}>{x.we ? "Hari libur" : "Hari kerja"} · Mg {x.wk}</span></div>
-          {CATS.map((c) => {
-            const a = agg(D, c.k), avg = x.we ? a.aWE : a.aWD, v = val(`${sel}:${c.k}`, D.daily[c.k][sel - 1]);
-            return (
-              <div className="field" key={c.k}>
-                <label htmlFor={`f-${c.k}`}>{c.n}<small>Rata-rata {x.we ? "hari libur" : "hari kerja"}: {fmt(avg)}</small><span className="cmp">{D.filled[sel - 1] && cmpTxt(parseInt(v) || 0, avg)}</span></label>
-                <div className="step">
-                  <button type="button" onClick={() => step(c.k, -1)} aria-label={`Kurangi ${c.n}`}>−</button>
-                  <input id={`f-${c.k}`} type="number" min={0} inputMode="numeric" value={v} onChange={(e) => change(c.k, e.target.value)} onKeyDown={(e) => onKey(e, c.k)} onFocus={(e) => e.target.select()} />
-                  <button type="button" onClick={() => step(c.k, 1)} aria-label={`Tambah ${c.n}`}>+</button>
+        <div className="daypanel" key={sel}>
+          <header className="dp-head">
+            <div>
+              <div className="dp-eyebrow">{x.we ? "Hari libur" : "Hari kerja"} · Minggu ke-{x.wk}</div>
+              <h2 className="dp-title">{DOWL[x.dow]}, {sel} {name}</h2>
+            </div>
+            <span className={`dp-save ${saving ? "busy" : savedAt ? "ok" : D.filled[sel - 1] ? "ok" : ""}`} aria-live="polite">
+              {saving ? "Menyimpan…" : savedAt ? "Tersimpan" : D.filled[sel - 1] ? "Sudah terisi" : "Belum diisi"}
+            </span>
+          </header>
+
+          <fieldset className="ro dp-body" disabled={!canWrite}>
+            {GROUPS.map((g) => (
+              <div className="dp-group" key={g.t}>
+                <div className="dp-gh">
+                  <span>{g.t}</span>
+                  {g.sum && <b>{fmt(g.keys.reduce((t, k) => t + (parseInt(val(`${sel}:${k}`, D.daily[k][sel - 1])) || 0), 0))}</b>}
                 </div>
+                {g.keys.map((k) => {
+                  const c = CATS.find((x) => x.k === k)!;
+                  const a = agg(D, k), avg = x.we ? a.aWE : a.aWD, v = val(`${sel}:${k}`, D.daily[k][sel - 1]);
+                  return (
+                    <div className="dp-row" key={k}>
+                      <label htmlFor={`f-${k}`}>
+                        <span className="dp-name">{c.n}</span>
+                        <span className="dp-meta">
+                          {avg ? <>Rata-rata {x.we ? "hari libur" : "hari kerja"} {fmt(avg)} {c.u}{D.filled[sel - 1] && cmpTxt(parseInt(v) || 0, avg)}</> : "Belum ada pembanding bulan ini"}
+                        </span>
+                      </label>
+                      <div className="step">
+                        <button type="button" onClick={() => step(k, -1)} aria-label={`Kurangi ${c.n}`}>−</button>
+                        <input id={`f-${k}`} type="number" min={0} inputMode="numeric" value={v} onChange={(e) => change(k, e.target.value)} onKeyDown={(e) => onKey(e, k)} onFocus={(e) => e.target.select()} />
+                        <button type="button" onClick={() => step(k, 1)} aria-label={`Tambah ${c.n}`}>+</button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20, gap: 12 }}>
-            <button type="button" className="btn q" disabled={sel === 1} onClick={() => setSel(sel - 1)}>← {sel > 1 ? sel - 1 : ""}</button>
-            <button type="button" className="btn" disabled={sel === D.days.length} onClick={() => setSel(sel + 1)}>Lanjut ke {sel < D.days.length ? `${sel + 1} ${name}` : ""} →</button>
-          </div>
-        </fieldset>
+            ))}
+          </fieldset>
+
+          <footer className="dp-foot">
+            <button type="button" className="btn q" disabled={sel === 1} onClick={() => setSel(sel - 1)}>← {sel > 1 ? `${sel - 1} ${name.slice(0, 3)}` : "Sebelumnya"}</button>
+            <span className="dp-hint"><kbd>Enter</kbd> pindah kolom</span>
+            <button type="button" className="btn red" disabled={sel === D.days.length} onClick={() => setSel(sel + 1)}>{sel < D.days.length ? `${sel + 1} ${name.slice(0, 3)}` : "Selesai"} →</button>
+          </footer>
+        </div>
       </section>
 
       <section className="sec">
