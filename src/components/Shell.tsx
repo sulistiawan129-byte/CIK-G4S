@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "./AppContext";
+import { Icon } from "./Icon";
 import { MODULES, MONTH_ID, ROLE_LABEL } from "@/lib/constants";
 import { addMonths, parseMonth } from "@/lib/dates";
 import { SLIDES, slideOk } from "@/lib/slides";
@@ -68,14 +69,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span key={m.key} style={{ display: "contents" }}>
               {m.key === "laporan" && <div className="sep"></div>}
               <Link href={m.href} aria-current={mod?.key === m.key ? "page" : undefined}>
-                {m.label}
+                <Icon name={m.key} />{m.label}
                 {m.key === "laporan" && ready !== null && <span className="badge">{ready}/{SLIDES.length}</span>}
               </Link>
             </span>
           ))}
-          {profile.role === "master_admin" && <Link href="/pengguna" aria-current={path.startsWith("/pengguna") ? "page" : undefined}>Pengguna</Link>}
+          {profile.role === "master_admin" && <Link href="/pengguna" aria-current={path.startsWith("/pengguna") ? "page" : undefined}><Icon name="pengguna" />Pengguna</Link>}
           <div className="sep"></div>
-          <Link href="/display" target="_blank">Layar ruang Security ↗</Link>
+          <Link href="/display" target="_blank" className="navdisp"><Icon name="display" />Layar ruang Security ↗</Link>
           <small>{ROLE_LABEL[profile.role]}{!canWrite ? " · lihat saja" : ""}</small>
         </nav>
         <main>{allowed ? children : <div className="errbox">Akun ini tidak punya akses ke menu ini.</div>}</main>

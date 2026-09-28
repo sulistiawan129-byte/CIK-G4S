@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CATS, dec, fmt, type CatKey } from "@/lib/constants";
 import { last13, monthLabelEn } from "@/lib/dates";
 import { agg, catHighlights, monthName, vsPrev } from "@/lib/calc";
@@ -99,6 +100,8 @@ function WeeklyChart({ D, k }: { D: MonthData; k: CatKey }) {
 /** Panel samping rincian kategori kendaraan/visitor. */
 export function CategoryDrawer({ D, open, k, setK, onClose }: { D: MonthData; open: boolean; k: CatKey; setK: (k: CatKey) => void; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!open) return;
     const t = setTimeout(() => closeRef.current?.focus(), 60);
@@ -108,7 +111,9 @@ export function CategoryDrawer({ D, open, k, setK, onClose }: { D: MonthData; op
   }, [open, onClose]);
   const c = CATS.find((x) => x.k === k)!, v = vsPrev(D, k), h = catHighlights(D, c), { name, year, prevName } = monthName(D.month);
   const si = 2 + CATS.findIndex((x) => x.k === k);
-  return (
+  if (!mounted) return null;
+  // Dirender langsung di <body> supaya posisinya tidak terpengaruh animasi halaman.
+  return createPortal(
     <>
       <div className={`scrim ${open ? "on" : ""}`} onClick={onClose}></div>
       <aside className={`drawer ${open ? "on" : ""}`} aria-hidden={!open} aria-label="Rincian kategori">
@@ -137,6 +142,7 @@ export function CategoryDrawer({ D, open, k, setK, onClose }: { D: MonthData; op
           </>
         )}
       </aside>
-    </>
+    </>,
+    document.body
   );
 }

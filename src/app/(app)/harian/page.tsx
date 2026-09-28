@@ -77,10 +77,13 @@ function Harian() {
           {Array.from({ length: firstMonOffset(D.month) }, (_, i) => <div key={`b${i}`}></div>)}
           {D.days.map((d) => {
             const has = D.filled[d.d - 1], ev = D.events.some((e) => Number(e.day.slice(8, 10)) === d.d);
+            const future = !has && new Date(d.iso + "T00:00:00") > today;
+            const heat = has ? r4Day(D, d.d - 1) / Math.max(1, ...D.days.map((x) => r4Day(D, x.d - 1))) : 0;
             return (
-              <button key={`${d.d}-${flash?.d === d.d ? flash.n : 0}`} className={`${d.we ? "we" : ""} ${has ? "has" : "empty"} ${flash?.d === d.d ? "flash" : ""}`} aria-pressed={d.d === sel} onClick={() => setSel(d.d)}>
+              <button key={`${d.d}-${flash?.d === d.d ? flash.n : 0}`} className={`${d.we ? "we" : ""} ${has ? "has" : future ? "empty future" : "empty past-empty"} ${flash?.d === d.d ? "flash" : ""}`} aria-pressed={d.d === sel} onClick={() => setSel(d.d)} aria-label={`${d.d}${has ? "" : future ? ", belum lewat" : ", belum diisi"}`} style={{ ["--h" as string]: heat.toFixed(2) }}>
                 <span className="n">{d.d}{ev && <i className="evd"></i>}</span>
-                <span className="t">{has ? `${fmt(r4Day(D, d.d - 1))} mobil` : "belum diisi"}</span>
+                <span className="t">{has ? fmt(r4Day(D, d.d - 1)) : future ? "" : "kosong"}</span>
+                {has && <span className="hb" style={{ width: `${Math.round(heat * 100)}%` }}></span>}
               </button>
             );
           })}
