@@ -1,6 +1,10 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "./supabase/client";
+
+/** Alamat dasar halaman gate: "/gate" di aplikasi utama, "/pos" di aplikasi petugas. */
+export const GateBaseCtx = createContext("/gate");
+export const useGateBase = () => useContext(GateBaseCtx);
 
 /* ───────── Definisi checklist (mengikuti form "Ceklist Pemeriksaan Kelengkapan Transporter") ───────── */
 export const ADM_ITEMS = [

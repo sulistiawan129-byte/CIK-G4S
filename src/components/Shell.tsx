@@ -12,6 +12,7 @@ import { checks } from "@/lib/calc";
 export function Shell({ children }: { children: React.ReactNode }) {
   const { profile, sites, siteId, setSiteId, month, setMonth, live, can, D, canWrite } = useApp();
   const path = usePathname();
+  const canGateLink = profile.role === "master_admin" || profile.role === "admin";
   const [menu, setMenu] = useState(false);
   const mod = MODULES.find((m) => (m.href === "/" ? path === "/" : path.startsWith(m.href)));
   const allowed = path.startsWith("/pengguna") ? profile.role === "master_admin" : !mod || can(mod.key);
@@ -76,7 +77,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           ))}
           {profile.role === "master_admin" && <Link href="/pengguna" aria-current={path.startsWith("/pengguna") ? "page" : undefined}><Icon name="pengguna" />Pengguna</Link>}
           {profile.role !== "gate" && <><div className="sep"></div>
-          <Link href="/display" target="_blank" className="navdisp"><Icon name="display" />Layar ruang Security ↗</Link></>}
+          <Link href="/display" target="_blank" className="navdisp"><Icon name="display" />Layar ruang Security ↗</Link>
+          {canGateLink && <Link href="/pos" target="_blank" className="navdisp"><Icon name="gate" />Aplikasi petugas gate ↗</Link>}</>}
           <small>{ROLE_LABEL[profile.role]}{!canWrite ? " · lihat saja" : ""}</small>
         </nav>
         <main>{allowed ? children : <div className="errbox">Akun ini tidak punya akses ke menu ini.</div>}</main>

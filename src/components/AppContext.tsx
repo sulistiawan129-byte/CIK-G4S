@@ -34,7 +34,7 @@ export const useApp = () => {
 
 
 
-export function AppProvider({ profile, sites, children }: { profile: Profile; sites: Site[]; children: React.ReactNode }) {
+export function AppProvider({ profile, sites, children, lite }: { profile: Profile; sites: Site[]; children: React.ReactNode; lite?: boolean }) {
   const [siteId, setSiteIdState] = useState<string | null>(null);
   const [month, setMonthState] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<{ m: string; k: "ok" | "err"; n: number } | null>(null);
@@ -48,7 +48,7 @@ export function AppProvider({ profile, sites, children }: { profile: Profile; si
   }, [sites]);
 
   useEffect(() => {
-    if (!siteId) return;
+    if (!siteId || lite) return;
     let m: string | null = null;
     try { m = sessionStorage.getItem("sd-month"); } catch {}
     if (m) setMonthState(m);
@@ -58,7 +58,8 @@ export function AppProvider({ profile, sites, children }: { profile: Profile; si
   const setSiteId = (id: string) => { setSiteIdState(id); try { localStorage.setItem("sd-site", id); } catch {} };
   const setMonth = (m: string) => { setMonthState(m); try { sessionStorage.setItem("sd-month", m); } catch {} };
 
-  const { data, setData, error, live, pulse, reload } = useMonthData(siteId, month);
+  // lite: aplikasi pos petugas tidak memuat data laporan bulanan
+  const { data, setData, error, live, pulse, reload } = useMonthData(lite ? null : siteId, month);
 
   const toast = useCallback((m: string, k: "ok" | "err" = "ok") => {
     setToastMsg({ m, k, n: Date.now() });
@@ -78,7 +79,7 @@ export function AppProvider({ profile, sites, children }: { profile: Profile; si
     profile, sites, site: sites.find((s) => s.id === siteId) ?? null, siteId, setSiteId, month, setMonth,
     canWrite, canGate, can, D: data, setD: setData, error, live, pulse, reload, toast, fail,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [profile, sites, siteId, month, canWrite, canGate, can, data, error, live, pulse, reload, toast, fail]);
+  }), [lite, profile, sites, siteId, month, canWrite, canGate, can, data, error, live, pulse, reload, toast, fail]);
 
   return (
     <AppCtx.Provider value={value}>

@@ -65,7 +65,7 @@ export default function Pengguna() {
       <section>
         <div className="eyebrow">Pengguna & akses</div>
         <h1>Siapa boleh melihat dan mengubah apa</h1>
-        <p className="lede">Akun login dipakai bersama aplikasi lain di project Supabase yang sama; akses Security Desk diatur terpisah di sini. Peran menentukan boleh mengubah data atau hanya melihat. Site membatasi data plant mana yang terlihat. Menu membatasi halaman yang muncul.</p>
+        <p className="lede">Akun login dipakai bersama aplikasi lain di project Supabase yang sama; akses Security Desk diatur terpisah di sini. Peran menentukan boleh mengubah data atau hanya melihat. Akun Petugas Gate masuk lewat link khusus <b>/pos</b>. Site membatasi data plant mana yang terlihat. Menu membatasi halaman yang muncul.</p>
       </section>
 
       <section className="sec">

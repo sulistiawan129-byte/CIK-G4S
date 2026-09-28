@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { Combo, Field, PhysRow, Section, Tri3, YesNo } from "@/components/gate/Parts";
-import { ADM_ITEMS, PHYS_AREAS, SAFETY_ITEMS, VEHICLE_TYPES, fDate, findings, gateApi, loadOptions, normNopol, type Adm, type GateRow, type Option, type Phys, type Safety } from "@/lib/gate";
+import { ADM_ITEMS, PHYS_AREAS, SAFETY_ITEMS, VEHICLE_TYPES, fDate, findings, gateApi, loadOptions, normNopol, type Adm, type GateRow, type Option, type Phys, type Safety, useGateBase } from "@/lib/gate";
 
 type Form = {
   nopol: string; company_id: string | null; company_name: string; vehicle_type: string; kir: string;
@@ -16,6 +16,7 @@ const EMPTY: Form = { nopol: "", company_id: null, company_name: "", vehicle_typ
 export default function GateIn() {
   const { siteId, canGate, toast, fail } = useApp();
   const router = useRouter();
+  const base = useGateBase();
   const [f, setF] = useState<Form>(EMPTY);
   const [adm, setAdm] = useState<Adm>({});
   const [safety, setSafety] = useState<Safety>({});
@@ -84,7 +85,7 @@ export default function GateIn() {
         adm_in: adm, safety, phys_in: phys, driver_ack_in: true, finding_count: fs.length,
       } as Partial<GateRow>);
       toast(`${normNopol(f.nopol)} tercatat masuk`);
-      router.push(`/gate/${r.id}?baru=1`);
+      router.push(`${base}/${r.id}?baru=1`);
     } catch (e) { fail(e as Error); setBusy(false); }
   }
 
@@ -111,7 +112,7 @@ export default function GateIn() {
             <input id="g-vt" className="g-in" list="g-vt-list" placeholder="Pilih atau ketik" value={f.vehicle_type} onChange={(e) => set("vehicle_type", e.target.value)} />
             <datalist id="g-vt-list">{VEHICLE_TYPES.map((v) => <option key={v} value={v} />)}</datalist>
           </Field>
-          {inside && <div className="g-alert bad wide">Nopol ini tercatat <b>masih di dalam area</b> sejak {fDate(inside.in_at)}. <Link className="link" href={`/gate/${inside.id}`}>Buka untuk Gate Out →</Link></div>}
+          {inside && <div className="g-alert bad wide">Nopol ini tercatat <b>masih di dalam area</b> sejak {fDate(inside.in_at)}. <Link className="link" href={`${base}/${inside.id}`}>Buka untuk Gate Out →</Link></div>}
           {prev && <div className="g-alert info wide">Pernah datang {fDate(prev.in_at)}. Data kendaraan dan pengemudi diisi otomatis. Periksa lagi sebelum menyimpan.</div>}
           <Field label="Perusahaan / supplier" htmlFor="g-comp" req wide hint={f.company_name && !f.company_id ? "Tidak ada di daftar supplier. Laporan pelanggaran tidak bisa dibuat untuk perusahaan ini." : undefined}>
             <Combo id="g-comp" options={opts.suppliers} value={f.company_id} text={f.company_name} allowFree invalid={tried && missing.company} placeholder="Ketik nama perusahaan" onPick={(o, t) => setF((p) => ({ ...p, company_id: o?.id ?? null, company_name: o?.name ?? t }))} />
@@ -195,7 +196,7 @@ export default function GateIn() {
       </Section>
 
       <div className="g-bar">
-        <Link href="/gate" className="btn q">Batal</Link>
+        <Link href={base} className="btn q">Batal</Link>
         <span className="g-bar-info">{incomplete ? `${[missing.nopol || missing.company || missing.driver || missing.sim, missing.dept, missing.adm, missing.safety, missing.phys, missing.ack].filter(Boolean).length} bagian belum lengkap` : fs.length ? `${fs.length} temuan` : "Semua lengkap"}</span>
         <button className="btn red big" onClick={save} disabled={busy}>{busy ? "Menyimpan…" : "Simpan & catat masuk"}</button>
       </div>

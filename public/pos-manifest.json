@@ -1,0 +1,11 @@
+{
+  "name": "Pos Gate Security",
+  "short_name": "Pos Gate",
+  "description": "Pemeriksaan transporter di gate",
+  "start_url": "/pos",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#141416",
+  "theme_color": "#DA291C",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

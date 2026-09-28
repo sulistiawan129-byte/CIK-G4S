@@ -111,7 +111,18 @@ Digitalisasi form **Ceklist Pemeriksaan Kelengkapan Transporter**: Gate In (keda
 
 **Setup (sekali):** jalankan `supabase/gate_module.sql` di SQL Editor setelah `schema.sql`. File ini aman dijalankan ulang, dan tidak mengubah tabel aplikasi NC. Tabel `suppliers` dan `destinations` hanya dibaca. Laporan NC dibuat lewat fungsi `security.gate_create_nc` saat petugas menekan tombol.
 
-**Akun petugas:** di menu Pengguna, buat akun dengan peran **Petugas Gate** dan centang site-nya. Akun ini hanya bisa membuka halaman Gate, dari HP, tablet, maupun PC.
+**Akun petugas:** di menu Pengguna, buat akun dengan peran **Petugas Gate** dan centang site-nya.
+
+**Link khusus petugas: `/pos`** (misalnya `https://cik-g4s.vercel.app/pos`)
+- Punya halaman login sendiri (`/pos/login`) dan tampilan ringkas tanpa menu admin. Isinya hanya daftar kendaraan di dalam area, Gate In, dan Gate Out.
+- Bisa dipasang sebagai aplikasi di HP: buka link di Chrome, lalu pilih menu **Tambahkan ke layar utama**. Namanya akan muncul sebagai "Pos Gate".
+- Akun Petugas Gate yang login lewat link utama otomatis diarahkan ke `/pos`.
+- Admin dan SPV tetap bisa membuka `/pos` untuk membantu di gate. Linknya ada di menu kiri: *Aplikasi petugas gate ↗*.
+
+**Opsional, pakai domain terpisah** (misalnya `pos-cik-g4s.vercel.app`):
+1. Vercel → project → Settings → **Domains** → tambahkan domain tersebut.
+2. Vercel → Settings → Environment Variables: `POS_HOST` = `pos-cik-g4s.vercel.app`, lalu Redeploy.
+3. Membuka domain itu akan langsung masuk ke halaman petugas.
 
 **Aturan yang dijaga database:**
 - Jam masuk dan keluar diisi server, sehingga tidak bisa dimundurkan.

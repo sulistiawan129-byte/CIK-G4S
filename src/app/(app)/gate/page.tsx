@@ -3,14 +3,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppContext";
-import { fDur, fTime, gateApi, todayWIB, useGateList, useTick, type GateRow } from "@/lib/gate";
+import { fDur, fTime, gateApi, todayWIB, useGateList, useTick, type GateRow, useGateBase } from "@/lib/gate";
 
 const LONG_HOURS = 4;
 
 function Card({ g }: { g: GateRow }) {
+  const base = useGateBase();
   const hrs = (Date.now() - new Date(g.in_at).getTime()) / 3600000;
   return (
-    <Link href={`/gate/${g.id}`} className={`g-card ${hrs >= LONG_HOURS ? "long" : ""} ${g.finding_count ? "has-f" : ""}`}>
+    <Link href={`${base}/${g.id}`} className={`g-card ${hrs >= LONG_HOURS ? "long" : ""} ${g.finding_count ? "has-f" : ""}`}>
       <div className="g-card-top">
         <span className="g-plate">{g.nopol}</span>
         <span className="g-dur" title="Lama di dalam area">{fDur(g.in_at)}</span>
@@ -36,6 +37,7 @@ export default function GatePage() {
   const { inside, history, live } = useGateList(siteId, day);
   useTick(30000);
   const isAdmin = profile.role === "master_admin" || profile.role === "admin";
+  const base = useGateBase();
 
   const shown = useMemo(() => {
     const list = history ?? [];
@@ -53,7 +55,7 @@ export default function GatePage() {
 
   function goOut(e: React.FormEvent) {
     e.preventDefault();
-    if (insideShown.length === 1) router.push(`/gate/${insideShown[0].id}`);
+    if (insideShown.length === 1) router.push(`${base}/${insideShown[0].id}`);
     else if (!insideShown.length && q.trim()) toast(`Tidak ada kendaraan ${q.toUpperCase()} di dalam area`, "err");
   }
   async function ack(who: "sl" | "spv") {
@@ -81,7 +83,7 @@ export default function GatePage() {
           <p className="lede">{isToday ? "Hari ini" : day}: {stats.masuk} masuk, {stats.keluar} keluar, {stats.temuan} dengan temuan.{stats.lama ? ` ${stats.lama} kendaraan sudah lebih dari ${LONG_HOURS} jam di dalam.` : ""}</p>
         </div>
         <div className="g-hero-r">
-          {canGate && <Link href="/gate/baru" className="g-big in"><span>Gate In</span><small>Kendaraan datang</small></Link>}
+          {canGate && <Link href={`${base}/baru`} className="g-big in"><span>Gate In</span><small>Kendaraan datang</small></Link>}
           <form className="g-big out" onSubmit={goOut}>
             <label htmlFor="g-find"><span>Gate Out</span><small>Ketik nopol kendaraan yang keluar</small></label>
             <input id="g-find" className="g-in" placeholder="Cari nopol…" autoCapitalize="characters" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -124,7 +126,7 @@ export default function GatePage() {
               return (
                 <li key={g.id}>
                   {isAdmin && <input type="checkbox" aria-label={`Pilih ${g.nopol}`} disabled={!(g.status === "out" && (!g.sl_at || !g.spv_at))} checked={sel.has(g.id)} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(g.id) : n.delete(g.id); setSel(n); }} />}
-                  <Link href={`/gate/${g.id}`} className="g-row">
+                  <Link href={`${base}/${g.id}`} className="g-row">
                     <span className="g-plate sm">{g.nopol}</span>
                     <span className="g-row-main"><b>{g.company_name || "–"}</b><small>{g.driver_name} · {g.doc_no}</small></span>
                     <span className="g-row-time"><b>{fTime(g.in_at)} → {g.out_at ? fTime(g.out_at) : "…"}</b><small>{g.out_at ? fDur(g.in_at, g.out_at) : "masih di dalam"}</small></span>

@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { Loading } from "@/components/ui";
 import { Field, PhysRow, Section, YesNo } from "@/components/gate/Parts";
-import { ADM_ITEMS, PHYS_AREAS, SAFETY_ITEMS, fDateLong, fDur, fTime, findings, gateApi, loadOptions, useGateRow, useTick, type Adm, type GateRow, type NcMeta, type Phys } from "@/lib/gate";
+import { ADM_ITEMS, PHYS_AREAS, SAFETY_ITEMS, fDateLong, fDur, fTime, findings, gateApi, loadOptions, useGateRow, useTick, type Adm, type GateRow, type NcMeta, type Phys, useGateBase } from "@/lib/gate";
 
 const yn = (v: boolean | null | undefined, yes = "Ada", no = "Tidak ada") => (v === true ? yes : v === false ? no : "–");
 
@@ -73,6 +73,7 @@ function CheckTable({ g }: { g: GateRow }) {
 
 function GateOut({ g }: { g: GateRow }) {
   const { toast, fail } = useApp();
+  const base = useGateBase();
   const [f, setF] = useState({ out_dest: "", out_sj: "", out_seal: "", out_material: "" });
   const [adm, setAdm] = useState<Adm>({});
   const [phys, setPhys] = useState<Phys>({});
@@ -134,7 +135,7 @@ function GateOut({ g }: { g: GateRow }) {
         </label>
       </Section>
       <div className="g-bar">
-        <Link href="/gate" className="btn q">Kembali</Link>
+        <Link href={base} className="btn q">Kembali</Link>
         <span className="g-bar-info">{incomplete ? "Lengkapi yang ditandai merah" : all.length ? `Total ${all.length} temuan` : "Semua lengkap"}</span>
         <button className="btn red big" onClick={save} disabled={busy}>{busy ? "Menyimpan…" : "Simpan & catat keluar"}</button>
       </div>
@@ -215,13 +216,14 @@ function Detail() {
   const [confirmDel, setConfirmDel] = useState(false);
   useTick(30000);
   const isAdmin = profile.role === "master_admin" || profile.role === "admin";
+  const base = useGateBase();
 
   if (g === undefined) return <Loading />;
   if (g === null) return <div className="errbox">Pemeriksaan tidak ditemukan atau akun ini tidak punya akses.</div>;
   const fs = findings(g);
 
   async function ackOne(who: "sl" | "spv") { try { await gateApi.acknowledge([g!.id], who); toast("Tercatat"); } catch (e) { fail(e as Error); } }
-  async function del() { try { await gateApi.remove(g!.id); toast("Pemeriksaan dihapus"); router.push("/gate"); } catch (e) { fail(e as Error); } }
+  async function del() { try { await gateApi.remove(g!.id); toast("Pemeriksaan dihapus"); router.push(base); } catch (e) { fail(e as Error); } }
 
   return (
     <div className="page enter gate-form">
