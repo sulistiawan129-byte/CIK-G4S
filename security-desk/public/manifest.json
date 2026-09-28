@@ -1,9 +1,0 @@
-{
-  "name": "Security Desk",
-  "short_name": "Security Desk",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#141416",
-  "theme_color": "#DA291C",
-  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-}
