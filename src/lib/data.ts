@@ -114,7 +114,7 @@ export function useMonthData(siteId: string | null, month: string | null) {
     const sb = supabaseBrowser();
     const ch = sb.channel(`site-${siteId}-${month}-${Math.random().toString(36).slice(2, 7)}`);
     REALTIME_TABLES.forEach((t) =>
-      ch.on("postgres_changes", { event: "*", schema: "public", table: t, filter: `site_id=eq.${siteId}` }, () => {
+      ch.on("postgres_changes", { event: "*", schema: "security", table: t, filter: `site_id=eq.${siteId}` }, () => {
         clearTimeout(timer.current);
         timer.current = setTimeout(() => { load(); setPulse((p) => p + 1); }, 250);
       })

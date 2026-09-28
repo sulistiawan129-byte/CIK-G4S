@@ -7,11 +7,17 @@ import { createServerClient } from "@supabase/ssr";
  *  - akun peran display → hanya boleh /display
  */
 export async function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith("/api/health")) return NextResponse.next();
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    // Tanpa konfigurasi, tampilkan halaman login (yang akan menjelaskan masalahnya) daripada error 500.
+    return req.nextUrl.pathname.startsWith("/login") ? NextResponse.next() : NextResponse.redirect(new URL("/login", req.url));
+  }
   let res = NextResponse.next({ request: req });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      db: { schema: "security" },
       cookies: {
         getAll: () => req.cookies.getAll(),
         setAll: (list) => {
@@ -37,13 +43,21 @@ export async function middleware(req: NextRequest) {
 
   if (isLogin || path.startsWith("/api") || path.startsWith("/auth")) return res;
 
-  const { data: profile } = await supabase.from("profiles").select("role, active").eq("id", user.id).maybeSingle();
+  const { data: profile, error: pErr } = await supabase.from("profiles").select("role, active").eq("id", user.id).maybeSingle();
+  if (pErr) {
+    // Biasanya: schema "security" belum di-expose, atau schema.sql belum dijalankan.
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?e=schema&m=${encodeURIComponent(pErr.message.slice(0, 160))}`;
+    await supabase.auth.signOut({ scope: "local" });
+    return NextResponse.redirect(url);
+  }
   if (!profile || !profile.active) {
     if (path !== "/login") {
       const url = req.nextUrl.clone();
       url.pathname = "/login";
       url.search = "?e=nonaktif";
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       return NextResponse.redirect(url);
     }
   }

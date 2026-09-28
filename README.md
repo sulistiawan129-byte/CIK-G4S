@@ -42,19 +42,26 @@ Semua halaman berlangganan perubahan tabel lewat Supabase Realtime. Begitu satu 
 
 ## 1. Siapkan Supabase
 
-1. Buat project di [supabase.com](https://supabase.com). Region **Singapore** paling dekat.
-2. **SQL Editor → New query**, tempel isi `supabase/schema.sql`, klik **Run**.
-   Ini membuat semua tabel, aturan akses (RLS), log aktivitas, publikasi realtime, dan site awal `CIK`.
-3. (Opsional, untuk mencoba) jalankan juga `supabase/seed_agustus_2026.sql`. Isinya data contoh Agustus 2026 dari laporan bulanan: harian, historis 12 bulan, kejadian, patroli, cuti, need improvement, KPI, catatan.
-4. **Authentication → Users → Add user**. Buat akun pertama Anda (centang *Auto Confirm User*).
-5. Kembali ke SQL Editor, jadikan akun itu Master Admin:
-   ```sql
-   update profiles set role = 'master_admin' where email = 'email@anda.com';
-   ```
-6. **Authentication → Providers → Email**: matikan *Allow new users to sign up* supaya akun hanya bisa dibuat oleh Master Admin.
-7. **Project Settings → API**: catat **Project URL**, **anon public key**, dan **service_role key**.
+Security Desk bisa dipasang di **project Supabase yang sudah dipakai aplikasi lain**. Semua tabel, fungsi, trigger, dan aturan aksesnya dibuat di schema terpisah bernama **`security`**. Tidak ada objek di schema `public` maupun `auth` yang dibuat, diubah, atau dihapus. Ini sudah diuji dengan simulasi project yang punya `public.profiles`, `public.handle_new_user`, dan trigger `on_auth_user_created`.
 
-> Akun lain dibuat dari menu **Pengguna** di aplikasi (butuh `SUPABASE_SERVICE_ROLE_KEY` di Vercel), atau lewat Supabase Dashboard. Akun baru dari Dashboard otomatis berperan *Viewer* tanpa site. Atur perannya di menu Pengguna.
+1. **SQL Editor → New query**, tempel isi `supabase/schema.sql`, klik **Run**.
+2. (Opsional, untuk mencoba) jalankan `supabase/seed_agustus_2026.sql`, berisi data contoh Agustus 2026.
+3. **Project Settings → API → Data API → Exposed schemas**: tambahkan **`security`**, lalu Save. Tanpa langkah ini aplikasi tidak bisa membaca data.
+4. Beri akses Master Admin ke akun Anda. Akun yang sudah ada di Authentication → Users boleh dipakai:
+   ```sql
+   insert into security.profiles (id, email, full_name, role, active)
+   select id, email, 'Nama Anda', 'master_admin', true
+   from auth.users where email = 'email@anda.com'
+   on conflict (id) do update set role = 'master_admin', active = true;
+   ```
+5. **Project Settings → API**: catat **Project URL**, **anon public key**, dan **service_role key**.
+
+### Akun login dipakai bersama
+- Satu email bisa masuk ke aplikasi lain dan ke Security Desk dengan password yang sama. Akses Security Desk diatur terpisah di `security.profiles` (menu **Pengguna**).
+- Akun yang **belum** diberi akses di menu Pengguna tidak bisa masuk ke Security Desk, meskipun email dan password-nya benar.
+- Menu Pengguna → **Tambah akun** dengan email yang sudah terdaftar di aplikasi lain: aksesnya ditambahkan, password lama tetap berlaku.
+- Tombol **Keluar** di Security Desk hanya mengakhiri sesi Security Desk. Sesi di aplikasi lain tidak ikut putus.
+- Perhatian: project ini punya trigger `on_auth_user_created` milik aplikasi lain. Setiap akun **baru** yang dibuat dari Security Desk juga otomatis mendapat baris di `public.profiles` dengan peran bawaan aplikasi itu. Pastikan peran bawaan tersebut tidak memberi akses yang tidak diinginkan di aplikasi lain.
 
 ## 2. Upload ke GitHub
 
@@ -108,7 +115,7 @@ npm run dev                  # http://localhost:3000
 
 ```
 supabase/
-  schema.sql              tabel, RLS, trigger log, realtime (jalankan sekali)
+  schema.sql              schema "security": tabel, RLS, trigger log, realtime
   seed_agustus_2026.sql   data contoh Agustus 2026
 src/
   middleware.ts           cek login + arahkan akun layar ke /display
@@ -131,12 +138,12 @@ src/
 - **Minggu ke-** dihitung Senin–Minggu. Hari setelah minggu ke-5 digabung ke minggu ke-5 (mengikuti laporan).
 - **Hari kerja/libur** = Senin–Jumat / Sabtu–Minggu.
 - **Rata-rata harian** = total hari kerja ÷ jumlah hari kerja (dan sama untuk hari libur).
-- **Grafik 13 bulan**: bulan yang punya data harian memakai jumlah data harian; bulan sebelum sistem dipakai memakai tabel `monthly_baseline`.
+- **Grafik 13 bulan**: bulan yang punya data harian memakai jumlah data harian; bulan sebelum sistem dipakai memakai tabel `security.monthly_baseline`.
 - **Nilai KPI tahun berjalan** = rata-rata bulan yang sudah dinilai × bobot (tidak dibagi 12).
 
 ## Menambah site baru
 
 ```sql
-insert into sites (code, name, client) values ('KODE', 'Nama Plant', 'Nama Klien');
+insert into security.sites (code, name, client) values ('KODE', 'Nama Plant', 'Nama Klien');
 ```
 Lalu centang site tersebut untuk akun yang boleh mengaksesnya di menu Pengguna.

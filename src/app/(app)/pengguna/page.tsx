@@ -28,7 +28,7 @@ export default function Pengguna() {
 
   useEffect(() => {
     load();
-    const ch = sb.channel("users-admin").on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load).subscribe();
+    const ch = sb.channel("users-admin").on("postgres_changes", { event: "*", schema: "security", table: "profiles" }, load).subscribe();
     const t = setInterval(load, 30000);
     return () => { sb.removeChannel(ch); clearInterval(t); };
   }, [load, sb]);
@@ -47,7 +47,7 @@ export default function Pengguna() {
     const j = await r.json();
     setBusy(false);
     if (!r.ok) return toast(j.error ?? "Gagal membuat akun", "err");
-    toast(`Akun ${form.email} dibuat`);
+    toast(j.existed ? `${form.email} sudah punya akun; akses Security Desk ditambahkan (password lama tetap)` : `Akun ${form.email} dibuat`);
     setForm({ ...form, email: "", full_name: "", password: "" });
     load();
   }
@@ -65,7 +65,7 @@ export default function Pengguna() {
       <section>
         <div className="eyebrow">Pengguna & akses</div>
         <h1>Siapa boleh melihat dan mengubah apa</h1>
-        <p className="lede">Peran menentukan boleh mengubah data atau hanya melihat. Site membatasi data plant mana yang terlihat. Menu membatasi halaman yang muncul.</p>
+        <p className="lede">Akun login dipakai bersama aplikasi lain di project Supabase yang sama; akses Security Desk diatur terpisah di sini. Peran menentukan boleh mengubah data atau hanya melihat. Site membatasi data plant mana yang terlihat. Menu membatasi halaman yang muncul.</p>
       </section>
 
       <section className="sec">
@@ -73,7 +73,7 @@ export default function Pengguna() {
         <form className="newuser users" onSubmit={create}>
           <label>Nama<input type="text" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></label>
           <label>Email<input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
-          <label>Password awal<input type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
+          <label>Password awal<input type="password" required minLength={8} title="Kalau email sudah punya akun di aplikasi lain, password lama tetap dipakai" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
           <label>Peran<select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <button className="btn red" disabled={busy}>{busy ? "Membuat…" : "Buat akun"}</button>
         </form>
@@ -87,7 +87,7 @@ export default function Pengguna() {
           {users.map((u) => (
             <li key={u.id}>
               <div><b>{u.full_name || "(tanpa nama)"}</b><div className="sub" style={{ margin: 0 }}>{u.email}</div>
-                <button className="link" style={{ fontSize: 12.5, marginTop: 4 }} onClick={() => resetPw(u)} disabled={u.id === profile.id}>Atur ulang password</button></div>
+                <button className="link" style={{ fontSize: 12.5, marginTop: 4 }} onClick={() => resetPw(u)} disabled={u.id === profile.id}>Atur ulang password</button><div className="note">Akun dipakai bersama aplikasi lain; password baru berlaku di sana juga.</div></div>
               <select value={u.role} disabled={u.id === profile.id} onChange={(e) => update(u.id, { role: e.target.value as Role })} aria-label="Peran">{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={u.role === "master_admin"} checked={u.role === "master_admin" || u.site_ids.includes(s.id)} onChange={() => update(u.id, { site_ids: toggleIn(u.site_ids, s.id) })} />{s.code}</label>)}</div>

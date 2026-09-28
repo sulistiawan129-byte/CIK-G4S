@@ -23,14 +23,35 @@ export async function POST(req: Request) {
 
   try {
     const admin = supabaseAdmin();
+    let userId: string | null = null;
+    let existed = false;
     const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name } });
-    if (error || !data.user) return NextResponse.json({ error: error?.message ?? "Gagal membuat akun." }, { status: 400 });
-    const { error: pe } = await admin.from("profiles").upsert({ id: data.user.id, email, full_name, role, site_ids, active: true });
+    if (data?.user) userId = data.user.id;
+    else if (error && /already|registered|exists/i.test(error.message)) {
+      // Email sudah punya akun di project ini (mis. dipakai aplikasi lain) → cukup beri akses Security Desk.
+      userId = await findUserId(admin, email);
+      existed = true;
+    } else {
+      return NextResponse.json({ error: error?.message ?? "Gagal membuat akun." }, { status: 400 });
+    }
+    if (!userId) return NextResponse.json({ error: "Akun dengan email ini tidak ditemukan." }, { status: 400 });
+    const { error: pe } = await admin.from("profiles").upsert({ id: userId, email, full_name, role, site_ids, active: true });
     if (pe) return NextResponse.json({ error: pe.message }, { status: 400 });
-    return NextResponse.json({ ok: true, id: data.user.id });
+    return NextResponse.json({ ok: true, id: userId, existed });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+}
+
+async function findUserId(admin: ReturnType<typeof supabaseAdmin>, email: string): Promise<string | null> {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const hit = data.users.find((u) => u.email?.toLowerCase() === email);
+    if (hit) return hit.id;
+    if (data.users.length < 200) break;
+  }
+  return null;
 }
 
 /** Mengatur ulang password pengguna lain. Hanya master admin. */

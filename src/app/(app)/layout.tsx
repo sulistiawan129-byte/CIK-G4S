@@ -10,7 +10,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const sb = supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect("/login");
-  const { data: profile } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  const { data: profile, error: pErr } = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if (pErr) redirect(`/login?e=schema&m=${encodeURIComponent(pErr.message.slice(0, 160))}`);
   if (!profile || !profile.active) redirect("/login?e=nonaktif");
   if (profile.role === "display") redirect("/display");
   const { data: sites } = await sb.from("sites").select("id,code,name,client").order("code");

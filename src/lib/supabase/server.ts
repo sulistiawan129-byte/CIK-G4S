@@ -9,6 +9,7 @@ export function supabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      db: { schema: "security" },
       cookies: {
         getAll: () => store.getAll(),
         setAll: (list) => {
@@ -28,6 +29,7 @@ export function supabaseAdmin() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY belum diisi di environment.");
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+    db: { schema: "security" },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
