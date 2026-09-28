@@ -14,6 +14,7 @@ interface Ctx {
   month: string | null;
   setMonth: (m: string) => void;
   canWrite: boolean;
+  canGate: boolean;
   can: (m: ModuleKey) => boolean;
   D: MonthData | null;
   setD: React.Dispatch<React.SetStateAction<MonthData | null>>;
@@ -67,13 +68,17 @@ export function AppProvider({ profile, sites, children }: { profile: Profile; si
   const fail = useCallback((e: Error) => toast(/row-level security|permission/i.test(e.message) ? "Akun ini tidak punya izin mengubah data." : `Gagal menyimpan: ${e.message}`, "err"), [toast]);
 
   const canWrite = profile.role === "master_admin" || profile.role === "admin";
-  const can = useCallback((m: ModuleKey) => profile.role === "master_admin" || !profile.modules || profile.modules.includes(m), [profile]);
+  const canGate = ["master_admin", "admin", "gate"].includes(profile.role);
+  const can = useCallback((m: ModuleKey) => {
+    if (profile.role === "gate") return m === "gate";
+    return profile.role === "master_admin" || !profile.modules || profile.modules.includes(m);
+  }, [profile]);
 
   const value = useMemo<Ctx>(() => ({
     profile, sites, site: sites.find((s) => s.id === siteId) ?? null, siteId, setSiteId, month, setMonth,
-    canWrite, can, D: data, setD: setData, error, live, pulse, reload, toast, fail,
+    canWrite, canGate, can, D: data, setD: setData, error, live, pulse, reload, toast, fail,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [profile, sites, siteId, month, canWrite, can, data, error, live, pulse, reload, toast, fail]);
+  }), [profile, sites, siteId, month, canWrite, canGate, can, data, error, live, pulse, reload, toast, fail]);
 
   return (
     <AppCtx.Provider value={value}>

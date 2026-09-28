@@ -36,7 +36,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <header className="top"><div className="top-in">
-        <Link href="/" className="wm" style={{ textDecoration: "none" }}><i></i>Security Desk</Link>
+        <Link href={profile.role === "gate" ? "/gate" : "/"} className="wm" style={{ textDecoration: "none" }}><i></i>Security Desk</Link>
         {sites.length > 1 ? (
           <select className="sitesel" value={siteId ?? ""} onChange={(e) => setSiteId(e.target.value)} aria-label="Pilih site">
             {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -44,11 +44,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         ) : <span className="per">{sites[0]?.name ?? "Belum ada site"}</span>}
         <div className="sp"></div>
         <span className={`livep ${live ? "on" : ""}`} title={live ? "Tersambung realtime" : "Menyambungkan…"}><i></i>{live ? "Live" : "Offline"}</span>
-        <div className="mswitch">
+        {!path.startsWith("/gate") && <div className="mswitch">
           <button onClick={() => month && setMonth(addMonths(month, -1))} aria-label="Bulan sebelumnya">‹</button>
           <b>{ml}</b>
           <button onClick={() => month && setMonth(addMonths(month, 1))} aria-label="Bulan berikutnya">›</button>
-        </div>
+        </div>}
         <button className="tt" onClick={toggleTheme} aria-label="Ganti tema terang/gelap">◐</button>
         <div className="umenu">
           <button onClick={() => setMenu((v) => !v)} aria-expanded={menu}><span className="av">{initials}</span><span className="per" style={{ display: "inline" }}>{profile.full_name?.split(" ")[0]}</span></button>
@@ -75,8 +75,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </span>
           ))}
           {profile.role === "master_admin" && <Link href="/pengguna" aria-current={path.startsWith("/pengguna") ? "page" : undefined}><Icon name="pengguna" />Pengguna</Link>}
-          <div className="sep"></div>
-          <Link href="/display" target="_blank" className="navdisp"><Icon name="display" />Layar ruang Security ↗</Link>
+          {profile.role !== "gate" && <><div className="sep"></div>
+          <Link href="/display" target="_blank" className="navdisp"><Icon name="display" />Layar ruang Security ↗</Link></>}
           <small>{ROLE_LABEL[profile.role]}{!canWrite ? " · lihat saja" : ""}</small>
         </nav>
         <main>{allowed ? children : <div className="errbox">Akun ini tidak punya akses ke menu ini.</div>}</main>

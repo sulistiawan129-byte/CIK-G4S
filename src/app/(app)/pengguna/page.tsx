@@ -6,7 +6,7 @@ import { MODULES, ROLE_LABEL } from "@/lib/constants";
 import type { Profile, Role } from "@/lib/types";
 
 interface Log { id: number; actor_email: string | null; table_name: string; action: string; at: string }
-const TABLE_LABEL: Record<string, string> = { daily_counts: "Data harian", day_events: "Catatan tanggal", incident_counts: "Kejadian", patrol_monthly: "Patroli", leaves: "Cuti/sakit", improvements: "Need improvement", kpi_scores: "KPI", report_notes: "Catatan laporan", profiles: "Pengguna" };
+const TABLE_LABEL: Record<string, string> = { gate_inspections: "Gate transporter", daily_counts: "Data harian", day_events: "Catatan tanggal", incident_counts: "Kejadian", patrol_monthly: "Patroli", leaves: "Cuti/sakit", improvements: "Need improvement", kpi_scores: "KPI", report_notes: "Catatan laporan", profiles: "Pengguna" };
 
 export default function Pengguna() {
   const { profile, sites, toast, fail } = useApp();
@@ -91,7 +91,7 @@ export default function Pengguna() {
               <select value={u.role} disabled={u.id === profile.id} onChange={(e) => update(u.id, { role: e.target.value as Role })} aria-label="Peran">{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={u.role === "master_admin"} checked={u.role === "master_admin" || u.site_ids.includes(s.id)} onChange={() => update(u.id, { site_ids: toggleIn(u.site_ids, s.id) })} />{s.code}</label>)}</div>
-                {u.role !== "master_admin" && u.role !== "display" && (
+                {u.role !== "master_admin" && u.role !== "display" && u.role !== "gate" && (
                   <div className="checks" title="Kosongkan semua = semua menu">
                     {MODULES.map((m) => <label key={m.key}><input type="checkbox" checked={!u.modules || u.modules.includes(m.key)} onChange={() => update(u.id, { modules: toggleIn(u.modules ?? MODULES.map((x) => x.key), m.key) })} />{m.label}</label>)}
                   </div>

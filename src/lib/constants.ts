@@ -32,6 +32,7 @@ export const DOWL = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sab
 
 export const MODULES = [
   { key: "ringkasan", href: "/", label: "Ringkasan" },
+  { key: "gate", href: "/gate", label: "Gate transporter" },
   { key: "harian", href: "/harian", label: "Data harian" },
   { key: "kejadian", href: "/kejadian", label: "Kejadian & patroli" },
   { key: "personel", href: "/personel", label: "Personel & temuan" },
@@ -45,6 +46,7 @@ export const ROLE_LABEL: Record<string, string> = {
   admin: "Admin / SPV G4S",
   viewer: "Viewer FFI",
   display: "Layar Ruang Security",
+  gate: "Petugas Gate",
 };
 
 export const fmt = (n: number | null | undefined) => Number(n || 0).toLocaleString("id-ID");

@@ -20,6 +20,7 @@ Admin mengisi data harian, sistem membentuk laporan bulanan dengan format yang s
 | KPI | `/kpi` | Skor 1–5 per objektif per bulan, nilai tahun berjalan |
 | Laporan bulanan | `/laporan` | 10 slide format laporan, catatan highlight, **unduh PowerPoint** |
 | Pengguna | `/pengguna` | (Master Admin) buat akun, atur peran/site/menu, nonaktifkan, reset password, log aktivitas |
+| Gate transporter | `/gate` | Gate In, kendaraan di dalam area, Gate Out, persetujuan SL/SPV, cetak form, laporan NC |
 | Layar ruang Security | `/display` | Dashboard eksekutif layar penuh, realtime |
 
 ### Peran & scope
@@ -30,6 +31,7 @@ Admin mengisi data harian, sistem membentuk laporan bulanan dengan format yang s
 | **Admin / SPV G4S** | Input & ubah data serta laporan, hanya untuk site yang diberikan |
 | **Viewer FFI** | Hanya melihat, hanya site yang diberikan |
 | **Layar Ruang Security** | Otomatis diarahkan ke `/display`, tidak bisa membuka menu lain |
+| **Petugas Gate** | Hanya halaman Gate: mencatat kendaraan masuk/keluar di site yang diberikan |
 
 Selain peran, setiap akun (kecuali Master Admin) dibatasi **per site** dan bisa dibatasi **per menu**.
 Pembatasan ini dijaga di dua tempat: tampilan aplikasi, dan **Row Level Security di database**. Jadi walaupun seseorang memanggil API Supabase langsung, data site lain tetap tidak bisa dibaca atau diubah.
@@ -102,6 +104,21 @@ Atau lewat web: buat repo baru di GitHub → **uploading an existing file** → 
 Layar ini menjaga agar monitor tidak masuk mode tidur, memilih bulan terbaru secara otomatis, dan memuat ulang dirinya setiap 6 jam. Untuk site lain gunakan `/display?site=KODE`.
 
 ---
+
+## Modul Gate transporter
+
+Digitalisasi form **Ceklist Pemeriksaan Kelengkapan Transporter**: Gate In (kedatangan), daftar kendaraan di dalam area, Gate Out (keberangkatan), persetujuan Shift Leader/Supervisor, cetak form, dan pembuatan laporan pelanggaran ke aplikasi NC.
+
+**Setup (sekali):** jalankan `supabase/gate_module.sql` di SQL Editor setelah `schema.sql`. File ini aman dijalankan ulang, dan tidak mengubah tabel aplikasi NC. Tabel `suppliers` dan `destinations` hanya dibaca. Laporan NC dibuat lewat fungsi `security.gate_create_nc` saat petugas menekan tombol.
+
+**Akun petugas:** di menu Pengguna, buat akun dengan peran **Petugas Gate** dan centang site-nya. Akun ini hanya bisa membuka halaman Gate, dari HP, tablet, maupun PC.
+
+**Aturan yang dijaga database:**
+- Jam masuk dan keluar diisi server, sehingga tidak bisa dimundurkan.
+- Nomor dokumen otomatis dengan format `GT-<site>-<YYMM>-<urut>`.
+- Petugas gate tidak bisa mengisi persetujuan SL/SPV.
+- Setelah kendaraan keluar, data hanya bisa diubah atau dihapus admin.
+- Laporan NC hanya bisa dibuat sekali per pemeriksaan.
 
 ## Menjalankan di komputer sendiri
 

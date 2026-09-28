@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
-const ROLES = ["master_admin", "admin", "viewer", "display"];
+const ROLES = ["master_admin", "admin", "viewer", "display", "gate"];
 
 /** Membuat akun baru. Hanya master admin. Service role key tidak pernah dikirim ke browser. */
 export async function POST(req: Request) {

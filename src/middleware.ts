@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
  * Menyegarkan sesi Supabase di setiap request dan mengarahkan:
  *  - belum login        → /login
  *  - akun peran display → hanya boleh /display
+ *  - akun petugas gate  → hanya boleh /gate
  */
 export async function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/api/health")) return NextResponse.next();
@@ -64,6 +65,12 @@ export async function middleware(req: NextRequest) {
   if (profile?.role === "display" && !path.startsWith("/display")) {
     const url = req.nextUrl.clone();
     url.pathname = "/display";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (profile?.role === "gate" && !path.startsWith("/gate")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/gate";
     url.search = "";
     return NextResponse.redirect(url);
   }
