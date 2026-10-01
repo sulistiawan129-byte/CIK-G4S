@@ -58,6 +58,22 @@ Security Desk bisa dipasang di **project Supabase yang sudah dipakai aplikasi la
    ```
 5. **Project Settings → API**: catat **Project URL**, **anon public key**, dan **service_role key**.
 
+### Ubah password sendiri
+Setiap akun bisa mengganti password sendiri, tanpa perlu Master Admin:
+- **Aplikasi utama:** klik nama di pojok kanan atas, lalu pilih **Ubah password**.
+- **Aplikasi petugas (`/pos`):** klik tombol **Password** di header.
+
+Password lama wajib diisi. Password baru minimal 8 karakter dan harus berisi huruf dan angka. Karena akunnya dipakai bersama, password baru ini juga berlaku di aplikasi lain seperti G-C.
+
+Kalau muncul pesan "verifikasi tambahan", buka Supabase → Authentication → Providers → Email, lalu matikan **Secure password change**.
+
+### Memberi akses ke akun yang sudah ada (mis. akun G-C)
+Akun dari aplikasi lain bisa login dengan email dan password yang sama, tetapi **baru bisa masuk Security Desk setelah diberi akses**. Ini disengaja supaya tidak semua akun G-C otomatis melihat data security.
+1. Jalankan `supabase/akses_akun.sql` sekali di SQL Editor.
+2. Buka menu **Pengguna**, lalu cari bagian *Akun dari aplikasi lain belum punya akses*. Pilih peran dan site, lalu klik **Beri akses**.
+
+Cara cepat lewat SQL juga tersedia di bagian bawah file `akses_akun.sql`.
+
 ### Akun login dipakai bersama
 - Satu email bisa masuk ke aplikasi lain dan ke Security Desk dengan password yang sama. Akses Security Desk diatur terpisah di `security.profiles` (menu **Pengguna**).
 - Akun yang **belum** diberi akses di menu Pengguna tidak bisa masuk ke Security Desk, meskipun email dan password-nya benar.

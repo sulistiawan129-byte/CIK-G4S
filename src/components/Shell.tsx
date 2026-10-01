@@ -4,13 +4,15 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "./AppContext";
 import { Icon } from "./Icon";
+import { ChangePassword } from "./ChangePassword";
 import { MODULES, MONTH_ID, ROLE_LABEL } from "@/lib/constants";
 import { addMonths, parseMonth } from "@/lib/dates";
 import { SLIDES, slideOk } from "@/lib/slides";
 import { checks } from "@/lib/calc";
 
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { profile, sites, siteId, setSiteId, month, setMonth, live, can, D, canWrite } = useApp();
+  const { profile, sites, siteId, setSiteId, month, setMonth, live, can, D, canWrite, toast } = useApp();
+  const [pwOpen, setPwOpen] = useState(false);
   const path = usePathname();
   const canGateLink = profile.role === "master_admin" || profile.role === "admin";
   const [menu, setMenu] = useState(false);
@@ -58,11 +60,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <div><b>{profile.full_name}</b><p className="sub">{profile.email}</p></div>
               <span className="chip">{ROLE_LABEL[profile.role]}</span>
               {!canWrite && <p className="sub">Akun ini hanya bisa melihat.</p>}
+              <button className="btn q" style={{ width: "100%", justifyContent: "center" }} onClick={() => { setMenu(false); setPwOpen(true); }}>Ubah password</button>
               <form action="/auth/signout" method="post"><button className="btn q" style={{ width: "100%", justifyContent: "center" }}>Keluar</button></form>
             </div>
           )}
         </div>
       </div></header>
+      <ChangePassword email={profile.email ?? ""} open={pwOpen} onClose={() => setPwOpen(false)} onDone={(m) => toast(m)} />
 
       <div className="shell">
         <nav className="nav" aria-label="Menu">

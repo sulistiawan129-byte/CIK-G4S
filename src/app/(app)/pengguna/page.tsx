@@ -5,6 +5,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { MODULES, ROLE_LABEL } from "@/lib/constants";
 import type { Profile, Role } from "@/lib/types";
 
+interface Unlinked { id: string; email: string; full_name: string; app_role: string | null; last_sign_in_at: string | null }
 interface Log { id: number; actor_email: string | null; table_name: string; action: string; at: string }
 const TABLE_LABEL: Record<string, string> = { gate_inspections: "Gate transporter", daily_counts: "Data harian", day_events: "Catatan tanggal", incident_counts: "Kejadian", patrol_monthly: "Patroli", leaves: "Cuti/sakit", improvements: "Need improvement", kpi_scores: "KPI", report_notes: "Catatan laporan", profiles: "Pengguna" };
 
@@ -15,6 +16,9 @@ export default function Pengguna() {
   const [form, setForm] = useState({ email: "", full_name: "", password: "", role: "admin" as Role, site_ids: sites.map((s) => s.id) });
   const [busy, setBusy] = useState(false);
   const [newPw, setNewPw] = useState<{ email: string; pw: string } | null>(null);
+  const [unlinked, setUnlinked] = useState<Unlinked[] | null>(null);
+  const [unlinkedErr, setUnlinkedErr] = useState<string | null>(null);
+  const [grant, setGrant] = useState<Record<string, { role: Role; sites: string[] }>>({});
   const sb = supabaseBrowser();
 
   const load = useCallback(async () => {
@@ -24,6 +28,9 @@ export default function Pengguna() {
     ]);
     if (u.data) setUsers(u.data as Profile[]);
     if (l.data) setLogs(l.data as Log[]);
+    const un = await sb.rpc("unlinked_accounts");
+    if (un.error) setUnlinkedErr(/unlinked_accounts|function/i.test(un.error.message) ? "missing" : un.error.message);
+    else { setUnlinkedErr(null); setUnlinked((un.data ?? []) as Unlinked[]); }
   }, [sb]);
 
   useEffect(() => {
@@ -58,6 +65,13 @@ export default function Pengguna() {
     if (!r.ok) return toast(j.error ?? "Gagal", "err");
     setNewPw({ email: u.email ?? "", pw });
   }
+  async function giveAccess(u: Unlinked) {
+    const g = grant[u.id] ?? { role: "viewer" as Role, sites: sites.map((x) => x.id) };
+    const { error } = await sb.rpc("grant_access", { p_user: u.id, p_role: g.role, p_sites: g.sites, p_name: u.full_name });
+    if (error) return toast(error.message, "err");
+    toast(`${u.email} sekarang bisa masuk sebagai ${ROLE_LABEL[g.role]}`);
+    load();
+  }
   const toggleIn = (arr: string[] | null, v: string) => { const a = arr ?? []; return a.includes(v) ? a.filter((x) => x !== v) : [...a, v]; };
 
   return (
@@ -79,6 +93,36 @@ export default function Pengguna() {
         </form>
         {sites.length > 1 && <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" checked={form.site_ids.includes(s.id)} onChange={() => setForm({ ...form, site_ids: toggleIn(form.site_ids, s.id) })} />{s.name}</label>)}</div>}
         {newPw && <div className="allgood"><span className="check">✓</span><div><b>Password baru untuk {newPw.email}</b><div className="sub">Berikan ke pengguna: <code style={{ fontSize: 16, fontWeight: 700 }}>{newPw.pw}</code></div></div><button className="link" onClick={() => setNewPw(null)}>Tutup</button></div>}
+      </section>
+
+      <section className="sec">
+        <div>
+          <h2>Akun dari aplikasi lain belum punya akses{unlinked ? ` (${unlinked.length})` : ""}</h2>
+          <p className="sub">Akun ini sudah bisa login di aplikasi lain pada project yang sama (mis. G-C), tetapi belum diberi akses Security Desk. Pilih peran dan site, lalu klik Beri akses. Password tetap sama dengan aplikasi asalnya.</p>
+        </div>
+        {unlinkedErr === "missing" ? (
+          <div className="errbox">Fitur ini butuh fungsi database baru. Jalankan <b>supabase/akses_akun.sql</b> di Supabase → SQL Editor, lalu muat ulang halaman ini.</div>
+        ) : unlinkedErr ? (
+          <div className="errbox">{unlinkedErr}</div>
+        ) : unlinked === null ? <div className="sk" style={{ height: 80 }} /> : unlinked.length === 0 ? (
+          <p className="sub">Semua akun sudah punya akses.</p>
+        ) : (
+          <ul className="rows users">
+            {unlinked.map((u) => {
+              const g = grant[u.id] ?? { role: "viewer" as Role, sites: sites.map((x) => x.id) };
+              const setG = (patch: Partial<typeof g>) => setGrant({ ...grant, [u.id]: { ...g, ...patch } });
+              return (
+                <li key={u.id}>
+                  <div><b>{u.full_name || "(tanpa nama)"}</b><div className="sub" style={{ margin: 0 }}>{u.email}</div>
+                    <div className="note">{u.app_role ? `Peran di aplikasi lain: ${u.app_role}` : ""}{u.last_sign_in_at ? ` · login terakhir ${new Date(u.last_sign_in_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}` : ""}</div></div>
+                  <select value={g.role} onChange={(e) => setG({ role: e.target.value as Role })} aria-label={`Peran untuk ${u.email}`}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+                  <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={g.role === "master_admin"} checked={g.role === "master_admin" || g.sites.includes(s.id)} onChange={() => setG({ sites: toggleIn(g.sites, s.id) })} />{s.code}</label>)}</div>
+                  <button className="btn red sm" onClick={() => giveAccess(u)}>Beri akses</button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <section className="sec">

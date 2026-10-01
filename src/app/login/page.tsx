@@ -10,7 +10,7 @@ function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(
     params.get("e") === "nonaktif"
-      ? "Login berhasil, tapi akun ini belum terdaftar di Security Desk (tabel security.profiles) atau sudah dinonaktifkan. Master Admin perlu menambahkannya; untuk akun pertama jalankan SQL Master Admin di README."
+      ? "Email dan password benar, tapi akun ini belum diberi akses Security Desk (atau sudah dinonaktifkan). Akun dari aplikasi lain seperti G-C perlu diaktifkan dulu oleh Master Admin di menu Pengguna → Beri akses."
       : params.get("e") === "schema"
         ? `Login berhasil, tapi data Security Desk belum bisa dibaca: ${params.get("m") ?? ""}. Pastikan schema.sql sudah dijalankan dan "security" sudah ditambahkan di Supabase → Project Settings → API → Exposed schemas.`
         : ""
@@ -52,7 +52,7 @@ function LoginForm() {
       <label>Email<input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
       <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
       <button className="btn red" type="submit" disabled={busy}>{busy ? "Memeriksa…" : "Masuk"}</button>
-      <p className="note">Lupa password? Minta Master Admin untuk mengatur ulang. Ada kendala? Buka <a href="/api/health" target="_blank" rel="noreferrer">/api/health</a> untuk cek koneksi.</p>
+      <p className="note">Lupa password? Minta Master Admin untuk mengatur ulang. Setelah masuk, password bisa diganti sendiri lewat menu akun → Ubah password. Ada kendala? Buka <a href="/api/health" target="_blank" rel="noreferrer">/api/health</a> untuk cek koneksi.</p>
     </form>
   );
 }

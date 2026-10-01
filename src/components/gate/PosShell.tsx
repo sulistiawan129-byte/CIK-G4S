@@ -3,9 +3,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useApp } from "@/components/AppContext";
 import { GateBaseCtx } from "@/lib/gate";
+import { ChangePassword } from "@/components/ChangePassword";
+import { useState } from "react";
 
 export function PosShell({ children }: { children: React.ReactNode }) {
-  const { profile, site, sites, siteId, setSiteId } = useApp();
+  const { profile, site, sites, siteId, setSiteId, toast } = useApp();
+  const [pwOpen, setPwOpen] = useState(false);
   const path = usePathname();
   const initials = (profile.full_name || profile.email || "?").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
@@ -22,10 +25,12 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         <div className="pos-user">
           <span className="av">{initials}</span>
           <span className="pos-name">{profile.full_name?.split(" ")[0]}</span>
+          <button className="pos-out" onClick={() => setPwOpen(true)} title="Ubah password">Password</button>
           <form action="/auth/signout?to=pos" method="post"><button className="pos-out">Keluar</button></form>
         </div>
       </div></header>
       <main className="pos-main">{children}</main>
+      <ChangePassword email={profile.email ?? ""} open={pwOpen} onClose={() => setPwOpen(false)} onDone={(m) => toast(m)} />
     </GateBaseCtx.Provider>
   );
 }
