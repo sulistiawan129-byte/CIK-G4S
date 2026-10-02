@@ -14,14 +14,13 @@ Sistem operasional security **dan** kepatuhan transporter (G-C) untuk **FFI Plan
 
 | Halaman | Path | Fungsi |
 |---|---|---|
-| Ringkasan | `/` | Kesiapan laporan, angka utama, grafik harian, "perlu dicek", kejadian, plus **portal gate live** (masuk/keluar per jam, kendaraan di dalam area) |
+| Dashboard | `/` | Satu dashboard untuk semua peran (kecuali SHE): angka utama, kendaraan per hari, perlu dicek & kesiapan slide, pelanggaran transporter (NC), portal gate live, kendaraan di dalam area, kejadian, patroli & personel, KPI, rekap per kategori. Untuk Management tampil versi lihat-saja |
 | Data harian | `/harian` | Kalender + isi 5 angka per hari (mobil karyawan/tamu/kontraktor, motor, visitor). Tersimpan otomatis |
 | Kejadian & patroli | `/kejadian` | Jumlah kejadian per kategori + keterangan, data guard tour |
 | Personel & temuan | `/personel` | Cuti/sakit + backup, need improvement + progres & status |
 | KPI | `/kpi` | Skor 1–5 per objektif per bulan, nilai tahun berjalan |
 | Laporan bulanan | `/laporan` | 10 slide format laporan, catatan highlight, **unduh PowerPoint** |
 | Dashboard NC, Laporan NC, Input NC, Total pemeriksaan, Supplier & tujuan | `/gc/...` | Modul G-C (lihat bagian Penggabungan) |
-| Dashboard eksekutif | `/eksekutif` | Untuk Management: security + gate + NC, lihat saja |
 | Pengguna | `/pengguna` | (Admin G4S / Admin GA) buat akun, atur peran/site/menu, nonaktifkan, reset password, log aktivitas |
 | Gate transporter | `/gate` | Ringkasan gate (masuk, keluar, di dalam, > 4 jam, temuan, rata-rata durasi), arus per jam, transporter teratas, Gate In/Out, persetujuan SL/SPV, cetak form, laporan NC |
 | Layar ruang Security | `/display` | Dashboard eksekutif layar penuh, realtime, termasuk panel **Portal gate · live** dan ringkasan kendaraan gate |
@@ -37,7 +36,7 @@ Sistem operasional security **dan** kepatuhan transporter (G-C) untuk **FFI Plan
 | **Admin GA** | Sama dengan Admin G4S | Ringkasan |
 | **GA Department** | Semua menu & data, semua site, **tanpa** kelola pengguna | Ringkasan |
 | **SHE Department** | Hanya modul G-C: Dashboard NC, Gate in/out, Laporan NC (analisa, rekap, cetak Excel, surat PDF). Lihat, unduh & cetak saja, tidak bisa mengubah data | Dashboard NC |
-| **Management** | Hanya Dashboard eksekutif (security + transporter + NC), lihat saja | Dashboard eksekutif |
+| **Management** | Hanya Dashboard (security + transporter + NC), lihat saja: tanpa tombol ubah, tanpa menu lain | Dashboard |
 | **Petugas Gate** | Aplikasi `/pos`: gate in/out, input NC, total pemeriksaan, NC hari ini. Hanya site yang dicentang | Aplikasi pos |
 | **Layar ruang Security** | Hanya `/display` | Layar ruang Security |
 
