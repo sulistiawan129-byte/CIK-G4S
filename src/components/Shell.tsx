@@ -22,8 +22,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const mod = moduleOf(path);
   const allowed = canPath(profile.role, path) && (!mod || can(mod.key));
   const title = path.startsWith("/pengguna") ? "Pengguna" : path.startsWith("/gc/tujuan") ? "Supplier & tujuan" : mod?.label ?? "Security Desk";
-  const showMonth = MODULES.some((m) => (m.group === "security" || m.key === "eksekutif") && m.key === mod?.key);
-  const groups: [string, string][] = [["security", "Security"], ["transporter", "Kepatuhan transporter"], ["lain", "Lainnya"]];
+  const showMonth = MODULES.some((m) => (m.group === "security" || m.group === "utama") && m.key === mod?.key);
+  const groups: [string, string][] = [["utama", ""], ["security", "Security"], ["transporter", "Kepatuhan transporter"]];
 
   useEffect(() => { try { setMini(localStorage.getItem("sd-mini") === "1"); } catch {} }, []);
   useEffect(() => {
@@ -47,13 +47,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className={`adm ${mini ? "mini" : ""}`}>
       <nav className="rail" aria-label="Menu">
-        <Link href={full ? "/" : profile.role === "she_dept" ? "/gc" : "/eksekutif"} className="rail-brand"><i></i><span>Security Desk</span></Link>
+        <Link href={profile.role === "she_dept" ? "/gc" : "/"} className="rail-brand"><i></i><span>Security Desk</span></Link>
         {groups.map(([g, gl]) => {
           const items = MODULES.filter((m) => m.group === g && can(m.key));
           if (!items.length) return null;
           return (
             <div className="rail-grp" key={g}>
-              <small>{gl}</small>
+              {gl && <small>{gl}</small>}
               {items.map((m) => (
                 <Link key={m.key} href={m.href} aria-current={mod?.key === m.key ? "page" : undefined} title={m.label}>
                   <Icon name={m.icon} /><span>{m.label}</span>

@@ -20,7 +20,7 @@ export const ROLE_DESC: Record<Role, string> = {
   admin_ga: "Semua menu & data, semua site, kelola pengguna",
   ga_dept: "Semua menu & data, semua site (tanpa kelola pengguna)",
   she_dept: "Modul G-C saja: lihat, unduh & cetak",
-  management: "Dashboard eksekutif, lihat saja",
+  management: "Dashboard (security + transporter), lihat saja",
   gate: "Aplikasi pos: gate in/out, input NC, total pemeriksaan",
   display: "Layar ruang Security",
 };
@@ -39,11 +39,11 @@ export const isFull = (r?: string | null) => r === "admin_g4s" || r === "admin_g
 export const allSites = (r?: string | null) => isFull(r) || r === "management";
 
 /* ───────── Menu ───────── */
-export type Group = "security" | "transporter" | "lain";
+export type Group = "utama" | "security" | "transporter";
 export interface Mod { key: string; href: string; label: string; group: Group; icon: string; roles: readonly Role[] }
 const FULL = ["admin_g4s", "admin_ga", "ga_dept"] as const;
 export const MODULES: readonly Mod[] = [
-  { key: "ringkasan", href: "/", label: "Ringkasan", group: "security", icon: "ringkasan", roles: FULL },
+  { key: "ringkasan", href: "/", label: "Dashboard", group: "utama", icon: "ringkasan", roles: [...FULL, "management"] },
   { key: "harian", href: "/harian", label: "Data harian", group: "security", icon: "harian", roles: FULL },
   { key: "kejadian", href: "/kejadian", label: "Kejadian & patroli", group: "security", icon: "kejadian", roles: FULL },
   { key: "personel", href: "/personel", label: "Personel & temuan", group: "security", icon: "personel", roles: FULL },
@@ -55,7 +55,6 @@ export const MODULES: readonly Mod[] = [
   { key: "gc_input", href: "/gc/nc/baru", label: "Input NC", group: "transporter", icon: "input", roles: FULL },
   { key: "gc_pemeriksaan", href: "/gc/pemeriksaan", label: "Total pemeriksaan", group: "transporter", icon: "harian", roles: FULL },
   { key: "gc_master", href: "/gc/supplier", label: "Supplier & tujuan", group: "transporter", icon: "supplier", roles: FULL },
-  { key: "eksekutif", href: "/eksekutif", label: "Dashboard eksekutif", group: "lain", icon: "display", roles: [...FULL, "management"] },
 ];
 export type ModuleKey = string;
 
@@ -74,7 +73,6 @@ export function moduleOf(path: string): Mod | undefined {
 export function homeOf(role?: string | null): string {
   if (role === "display") return "/display";
   if (role === "gate") return "/pos";
-  if (role === "management") return "/eksekutif";
   if (role === "she_dept") return "/gc";
   return "/";
 }

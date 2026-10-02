@@ -43,10 +43,18 @@ export function NcTopCard({ s, className = "c6" }: { s: NcSummary | null; classN
     <section className={`dcard ${className}`}>
       <div className="dch"><h2>Temuan terbanyak</h2><span className="sub" style={{ margin: 0 }}>bulan ini</span></div>
       {!s ? <div className="sk" style={{ height: 150 }} /> : (
-        <div className="nctop">
-          <div><h3>Jenis pelanggaran</h3>{bar(s.byCat)}</div>
-          <div><h3>Supplier</h3>{bar(s.bySupplier)}</div>
-        </div>
+        <>
+          <div className="nctop">
+            <div><h3>Jenis pelanggaran</h3>{bar(s.byCat)}</div>
+            <div><h3>Supplier</h3>{bar(s.bySupplier)}</div>
+          </div>
+          <div className="nclatest">
+            <h3>Laporan terbaru</h3>
+            {s.latest.length ? <ul>{s.latest.slice(0, 4).map((r) => (
+              <li key={r.id}><span className="tn">{r.tanggal.slice(8, 10)}/{r.tanggal.slice(5, 7)}</span><b>{r.no_polisi}</b><span className="co">{r.nama_supplier}</span><span className="tg">{(r.temuan_list ?? []).join(", ")}</span><em className={r.status === "Reject" ? "rj" : "ac"}>{r.status}</em></li>
+            ))}</ul> : <p className="sub">Belum ada laporan bulan ini.</p>}
+          </div>
+        </>
       )}
     </section>
   );

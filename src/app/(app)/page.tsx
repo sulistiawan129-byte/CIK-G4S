@@ -3,9 +3,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { CategoryDrawer, Count, Loading, Spark } from "@/components/ui";
-import { CATS, DOW, DOWL, EVENT_KINDS, fmt, type CatKey } from "@/lib/constants";
-import { checks, incTotal, monthName, patrolPct, r4Day, agg } from "@/lib/calc";
-import { shiftNow } from "@/lib/dates";
+import { CATS, DOW, DOWL, EVENT_KINDS, MONTH_ID, dec, fmt, type CatKey } from "@/lib/constants";
+import { checks, incOrdered, incTotal, kpiCalc, monthName, monthsOpen, patrolPct, r4Day, agg, vsPrev } from "@/lib/calc";
+import { parseMonth, shiftNow } from "@/lib/dates";
 import { SLIDES, slideOk } from "@/lib/slides";
 import { api } from "@/lib/data";
 import type { MonthData } from "@/lib/types";
@@ -103,7 +103,7 @@ function DayDetail({ D, sel }: { D: MonthData; sel: number }) {
           <div><b>{fmt(D.daily.motor[sel - 1])}</b><span>motor</span></div>
           <div><b>{fmt(D.daily.visitor[sel - 1])}</b><span>visitor</span></div>
         </div>
-        <Link className="link" style={{ marginTop: 12, display: "inline-block" }} href={`/harian?d=${sel}`}>Ubah data tanggal ini <span className="arr">→</span></Link>
+        {canWrite && <Link className="link" style={{ marginTop: 12, display: "inline-block" }} href={`/harian?d=${sel}`}>Ubah data tanggal ini <span className="arr">→</span></Link>}
       </div>
       <div>
         {ev.length ? (
@@ -165,8 +165,20 @@ function Todo({ D }: { D: MonthData }) {
   );
 }
 
+/** Catatan terbaru bulan ini (untuk peran lihat-saja). */
+function Feed({ D }: { D: MonthData }) {
+  const { name } = monthName(D.month);
+  const feed = [...D.events].sort((a, b) => (b.day + b.created_at).localeCompare(a.day + a.created_at)).slice(0, 7);
+  if (!feed.length) return <p className="sub">Belum ada catatan bulan ini.</p>;
+  return (
+    <ul className="dfeed">
+      {feed.map((e) => <li key={e.id}><span className="t">{Number(e.day.slice(8, 10))} {name.slice(0, 3)}</span><span className="k">{e.kind}</span><span>{e.description}</span></li>)}
+    </ul>
+  );
+}
+
 export default function Home() {
-  const { D, error, siteId } = useApp();
+  const { D, error, siteId, canWrite } = useApp();
   const [sel, setSel] = useState(1);
   const [drawer, setDrawer] = useState<CatKey | null>(null);
   const [dk, setDk] = useState<CatKey>("karyawan");
@@ -185,84 +197,135 @@ export default function Home() {
 
   if (!D) return <Loading error={error} />;
   const { name, year } = monthName(D.month);
+  const { m0 } = parseMonth(D.month);
   const ch = checks(D), ok = SLIDES.filter((s) => slideOk(D, s, ch)).length;
   const r4c = CATS.filter((c) => c.r4), r4h = D.totals13.karyawan.map((_, i) => r4c.reduce((a, c) => a + D.totals13[c.k][i], 0));
   const r4 = r4h[12], mo = agg(D, "motor").total, moh = D.totals13.motor;
   const inc = incTotal(D), incOn = [...D.inc].filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
   const gs = gateStats(history ?? [], inside ?? []);
+  const pc = patrolPct(D), k = kpiCalc(D), kNow = k.monthly[m0];
+  const openNi = D.improvements.filter((n) => n.status !== "Selesai");
+  const oldest = openNi.length ? Math.max(...openNi.map((n) => monthsOpen(n.opened_month, D.month))) : 0;
   const dl = (a: number, b: number) => <span className={a < b ? "dn" : "up"}>{a < b ? "▼" : "▲"} {fmt(Math.abs(a - b))} dari bulan lalu</span>;
-  const open = (k: CatKey) => { setDk(k); setDrawer(k); };
+  const open = (c: CatKey) => { setDk(c); setDrawer(c); };
   const off = 314.16 * (1 - ok / SLIDES.length);
+  const insideTop = (inside ?? []).slice(0, 8);
 
   return (
-    <div className="dgrid enter">
-      <section className="dband" aria-label="Ringkasan bulan">
+    <div className="dgrid dash enter">
+      {/* ── angka utama ── */}
+      <section className="dband six" aria-label="Ringkasan bulan">
         <div>
-          <div className="dring" aria-label={`${ok} dari ${SLIDES.length} slide siap`}>
-            <svg viewBox="0 0 120 120" width="76" height="76"><circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="11" /><circle cx="60" cy="60" r="50" fill="none" stroke="#DA291C" strokeWidth="11" strokeDasharray="314.16" style={{ strokeDashoffset: off, transition: "stroke-dashoffset 1s" }} /></svg>
-            <b>{ok}</b>
-          </div>
+          {canWrite && (
+            <div className="dring" aria-label={`${ok} dari ${SLIDES.length} slide siap`}>
+              <svg viewBox="0 0 120 120" width="76" height="76"><circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="11" /><circle cx="60" cy="60" r="50" fill="none" stroke="#DA291C" strokeWidth="11" strokeDasharray="314.16" style={{ strokeDashoffset: off, transition: "stroke-dashoffset 1s" }} /></svg>
+              <b>{ok}</b>
+            </div>
+          )}
           <div>
-            <div className="eyebrow">Periode laporan</div>
+            <div className="eyebrow">Periode</div>
             <div className="dper">{name} {year}</div>
-            <div className="dready">{ok} dari {SLIDES.length} slide siap{ch.length ? ` · ${ch.length} hal perlu dicek` : " · siap dikirim"} · <Link href="/laporan" style={{ color: "#fff" }}>Buka laporan →</Link></div>
+            <div className="dready">{canWrite ? <>{ok}/{SLIDES.length} slide laporan siap · <Link href="/laporan" style={{ color: "#fff" }}>Buka →</Link></> : "Realtime · hanya lihat"}</div>
           </div>
         </div>
         <button className="dk" onClick={() => open("karyawan")}><Count className="dkv" value={r4} /><div className="dkl">Kendaraan roda empat</div><div className="dkd">{dl(r4, r4h[11])}</div><Spark vals={r4h} /></button>
         <button className="dk" onClick={() => open("motor")}><Count className="dkv" value={mo} /><div className="dkl">Motor</div><div className="dkd">{dl(mo, moh[11])}</div><Spark vals={moh} /></button>
-        <Link className="dk" href="/kejadian"><Count className="dkv" value={inc} /><div className="dkl">Kejadian tercatat</div><div className="dkd">{incOn.slice(0, 2).map((i) => `${i.category} ${i.value}`).join(" · ") || "Belum ada kejadian"}</div></Link>
-        <Link className="dk" href="/gate"><Count className="dkv" value={gs.dalam} /><div className="dkl">Transporter di dalam · live</div><div className="dkd"><span className={gs.lama ? "dn" : "up"}>{gs.masuk} masuk hari ini{gs.lama ? ` · ${gs.lama} > 4 jam` : ""}</span></div></Link>
+        <div className="dk"><Count className="dkv" value={inc} /><div className="dkl">Kejadian</div><div className="dkd">{incOn.slice(0, 2).map((i) => `${i.category} ${i.value}`).join(" · ") || "Nihil"}</div></div>
+        <div className="dk"><Count className="dkv" value={nc?.total ?? 0} /><div className="dkl">Pelanggaran transporter</div><div className="dkd">{nc ? <span className={nc.total > nc.prev ? "dn" : "up"}>{nc.rate === null ? "–" : `${nc.rate.toFixed(2).replace(".", ",")}%`} dari {fmt(nc.inspected)} diperiksa</span> : "…"}</div></div>
+        <div className="dk"><Count className="dkv" value={gs.dalam} /><div className="dkl">Transporter di dalam · live</div><div className="dkd"><span className={gs.lama ? "dn" : "up"}>{gs.masuk} masuk hari ini{gs.lama ? ` · ${gs.lama} > 4 jam` : ""}</span></div></div>
       </section>
 
+      {/* ── baris 2: kendaraan harian + perlu dicek / catatan ── */}
       <section className="dcard c8">
-        <div className="dch"><h2>Sebulan di gerbang</h2><button className="btn q sm" onClick={() => open("karyawan")}>Rincian per kategori</button></div>
+        <div className="dch"><h2>Kendaraan per hari · {name}</h2><button className="btn q sm" onClick={() => open("karyawan")}>Rincian per kategori</button></div>
         <Strip D={D} sel={sel} setSel={setSel} />
         <DayDetail D={D} sel={sel} />
       </section>
-
-      <div className="c4 dstack">
-        <section className="dcard" id="todo">
+      <section className="dcard c4" id="todo">
+        {canWrite ? (<>
           <div className="dch"><h2>Perlu dicek</h2>{ch.length > 0 && <span className="g-tag bad">{ch.length}</span>}</div>
           <Todo D={D} />
-        </section>
-      <section className="dcard">
-        <div className="dch"><h2>Kejadian</h2><span className="sub" style={{ margin: 0 }}>{name}</span></div>
-        {incOn.length ? (
-          <div className="hbar">{incOn.map((i) => <div className="r" key={i.category}><span>{i.category}</span><span className="t"><i style={{ width: `${(i.value / incOn[0].value) * 100}%` }}></i></span><b>{i.value}</b></div>)}</div>
-        ) : <p className="sub">Belum ada kejadian bulan ini.</p>}
+          <div className="dfill dslides">
+            <h3>Kesiapan slide laporan</h3>
+            <ul>{SLIDES.map((sl) => { const good = slideOk(D, sl, ch); return <li key={sl.n} className={good ? "ok" : "no"}><i>{good ? "✓" : "!"}</i>{sl.n}</li>; })}</ul>
+          </div>
+          <Link className="dfoot" href="/laporan">Laporan bulanan · {ok}/{SLIDES.length} slide siap <span className="arr">→</span></Link>
+        </>) : (<>
+          <div className="dch"><h2>Catatan terbaru</h2><span className="sub" style={{ margin: 0 }}>{D.events.length} bulan ini</span></div>
+          <Feed D={D} />
+          <div className="dfill dslides">
+            <h3>Kelengkapan laporan bulan ini · {ok}/{SLIDES.length}</h3>
+            <ul>{SLIDES.map((sl) => { const good = slideOk(D, sl, ch); return <li key={sl.n} className={good ? "ok" : "no"}><i>{good ? "✓" : "!"}</i>{sl.n}</li>; })}</ul>
+          </div>
+        </>)}
       </section>
-      </div>
 
+      {/* ── baris 3: pelanggaran transporter ── */}
+      <NcSummaryCard s={nc} link={canWrite} />
+      <NcTopCard s={nc} />
+
+      {/* ── baris 4: portal gate ── */}
       <section className="dcard c6">
-        <div className="dch"><h2>Portal gate · hari ini <span className={`live ${gLive ? "on" : ""}`}><i></i>{gLive ? "LIVE" : "…"}</span></h2><Link className="btn q sm" href="/gate">Detail</Link></div>
+        <div className="dch"><h2>Portal gate · hari ini <span className={`live ${gLive ? "on" : ""}`}><i></i>{gLive ? "LIVE" : "…"}</span></h2>{canWrite && <Link className="btn q sm" href="/gate">Detail</Link>}</div>
         <div className="mk">
           <div><b>{gs.masuk}</b><span>Masuk</span></div>
           <div><b>{gs.keluar}</b><span>Keluar</span></div>
-          <div><b>{gs.dalam}</b><span>Di dalam</span></div>
+          <div className={gs.lama ? "bad" : ""}><b>{gs.dalam}</b><span>Di dalam{gs.lama ? ` · ${gs.lama} > 4 jam` : ""}</span></div>
           <div className={gs.temuan ? "bad" : ""}><b>{gs.temuan}</b><span>Ada temuan</span></div>
         </div>
-        <FlowChart today={history ?? []} day={day} />
-        <div className="dleg" style={{ marginTop: 6 }}><span><i style={{ background: "var(--bar)" }}></i>Masuk</span><span><i style={{ background: "#DA291C" }}></i>Keluar</span><span>per jam · rata-rata {gs.avgMs ? fDurMs(gs.avgMs) : "–"} di dalam</span></div>
+        <div className="dfill dflow"><FlowChart today={history ?? []} day={day} /></div>
+        <div className="dleg"><span><i style={{ background: "var(--bar)" }}></i>Masuk</span><span><i style={{ background: "#DA291C" }}></i>Keluar</span><span>per jam · rata-rata {gs.avgMs ? fDurMs(gs.avgMs) : "–"} di dalam</span></div>
       </section>
-
       <section className="dcard c6">
         <div className="dch"><h2>Di dalam area</h2><span className="sub" style={{ margin: 0 }}>terlama di atas</span></div>
-        <div className="inl">
-          {(inside ?? []).slice(0, 8).map((g) => (
-            <Link key={g.id} href={`/gate/${g.id}`} className={Date.now() - new Date(g.in_at).getTime() > LONG_MS ? "long" : ""}>
-              <span className="g-plate sm">{g.nopol}</span>
-              <span><b>{g.company_name || "–"}</b><small>{g.driver_name} · {g.in_dept_name || "–"}</small></span>
-              <span className="dur">{fDurShort(g.in_at)}</span>
-            </Link>
-          ))}
-          {inside && inside.length === 0 && <p className="sub">Tidak ada kendaraan di dalam area.</p>}
-          {inside && inside.length > 8 && <Link href="/gate" className="sub" style={{ display: "block", background: "none", padding: 0, gridColumn: "1/-1" }}>+{inside.length - 8} kendaraan lain →</Link>}
+        <div className="dfill">
+          <div className="inl two">
+            {insideTop.map((g) => {
+              const cls = Date.now() - new Date(g.in_at).getTime() > LONG_MS ? "long" : "";
+              const body = (<><span className="g-plate sm">{g.nopol}</span><span><b>{g.company_name || "–"}</b><small>{g.driver_name} · {g.in_dept_name || "–"}</small></span><span className="dur">{fDurShort(g.in_at)}</span></>);
+              return canWrite ? <Link key={g.id} href={`/gate/${g.id}`} className={cls}>{body}</Link> : <div key={g.id} className={`inr ${cls}`}>{body}</div>;
+            })}
+          </div>
+          {inside && inside.length === 0 && <div className="dempty">Tidak ada kendaraan di dalam area.</div>}
+        </div>
+        {inside && inside.length > 8 && (canWrite ? <Link className="dfoot" href="/gate">+{inside.length - 8} kendaraan lain <span className="arr">→</span></Link> : <span className="dfoot">+{inside.length - 8} kendaraan lain</span>)}
+      </section>
+
+      {/* ── baris 5: kejadian, patroli & personel, KPI ── */}
+      <section className="dcard c4">
+        <div className="dch"><h2>Kejadian</h2><span className="sub" style={{ margin: 0 }}>{fmt(inc)} total · bulan lalu</span></div>
+        <div className="dfill">
+          <div className="hbar inc">{incOrdered(D).map((i) => { const pv = D.incPrev[i.category]; const mx = Math.max(1, ...D.inc.map((x) => x.value)); return (
+            <div className={`r ${i.value ? "" : "zero"}`} key={i.category}><span title={i.category}>{i.category}</span><span className="t"><i style={{ width: `${(i.value / mx) * 100}%` }}></i></span><b>{i.value}</b><em>{pv ?? "–"}</em></div>
+          ); })}</div>
+        </div>
+      </section>
+      <section className="dcard c4">
+        <div className="dch"><h2>Patroli & personel</h2></div>
+        <div className="dfill dstat">
+          <div><b>{dec(pc, 2)}<small>%</small></b><span>Checkpoint patroli · {fmt(D.patrol.target_checkpoint - D.patrol.actual_checkpoint)} terlewat</span><i className="meter"><i style={{ width: `${Math.min(100, pc)}%` }}></i></i></div>
+          <div className={oldest >= 3 ? "bad" : ""}><b>{openNi.length}</b><span>Temuan terbuka{openNi.length ? ` · tertua ${oldest} bulan` : " · semua selesai"}</span></div>
+          <div><b>{D.leaves.length}</b><span>Cuti / sakit bulan ini</span></div>
+        </div>
+      </section>
+      <section className="dcard c4">
+        <div className="dch"><h2>KPI</h2><span className="sub" style={{ margin: 0 }}>{year}</span></div>
+        <div className="dfill dstat">
+          <div><b>{kNow === null ? "–" : dec(kNow)}</b><span>Skor {name} (skala 1–5)</span></div>
+          <div><b>{dec(k.final)}</b><span>Tahun berjalan</span></div>
+          <div className="kmonths" aria-label="Skor KPI per bulan">{k.monthly.map((v, i) => <span key={i} className={i === m0 ? "cur" : ""} title={`${MONTH_ID[i]}: ${v === null ? "–" : dec(v)}`}><i style={{ height: `${v === null ? 0 : (v / 5) * 100}%` }}></i></span>)}</div>
         </div>
       </section>
 
-
-      <NcSummaryCard s={nc} />
-      <NcTopCard s={nc} />
+      {/* ── baris 6: rekap per kategori ── */}
+      <section className="dcard c12">
+        <div className="dch"><h2>Rekap per kategori · {name} {year}</h2><span className="sub" style={{ margin: 0 }}>dibanding bulan lalu</span></div>
+        <div className="xcats">
+          {CATS.map((c) => { const v = vsPrev(D, c.k); return (
+            <button key={c.k} className="xcat" onClick={() => open(c.k)}><small>{c.n}</small><b>{fmt(v.t)}</b><span className={v.d < 0 ? "dn" : "up"}>{v.d < 0 ? "▼" : "▲"} {fmt(Math.abs(v.d))} ({dec(Math.abs(v.pct), 1)}%)</span><Spark vals={D.totals13[c.k]} /></button>
+          ); })}
+        </div>
+      </section>
 
       <CategoryDrawer D={D} open={!!drawer} k={dk} setK={setDk} onClose={() => setDrawer(null)} />
     </div>
