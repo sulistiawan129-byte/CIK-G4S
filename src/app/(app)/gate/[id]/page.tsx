@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/AppContext";
+import { isFull } from "@/lib/access";
 import { Loading } from "@/components/ui";
 import { Field, PhysRow, Section, YesNo } from "@/components/gate/Parts";
 import { ADM_ITEMS, PHYS_AREAS, SAFETY_ITEMS, fDateLong, fDur, fTime, findings, gateApi, loadOptions, useGateRow, useTick, type Adm, type GateRow, type NcMeta, type Phys, useGateBase } from "@/lib/gate";
@@ -215,7 +216,7 @@ function Detail() {
   const { row: g } = useGateRow(id);
   const [confirmDel, setConfirmDel] = useState(false);
   useTick(30000);
-  const isAdmin = profile.role === "master_admin" || profile.role === "admin";
+  const isAdmin = isFull(profile.role);
   const base = useGateBase();
 
   if (g === undefined) return <Loading />;

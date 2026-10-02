@@ -10,6 +10,45 @@ import { parseMonth, shiftNow } from "@/lib/dates";
 import { SLIDES, slideOk } from "@/lib/slides";
 import { Count, Spark } from "@/components/ui";
 import type { MonthData, Site } from "@/lib/types";
+import { LONG_MS, fDurMs, fDurShort, gateStats, todayWIB, useGateList, useTick, type GateRow } from "@/lib/gate";
+import { FlowChart } from "@/components/gate/Flow";
+
+/** Daftar kendaraan di dalam area yang dipotong sesuai tinggi panel (+n kendaraan lain). */
+function InsideList({ rows }: { rows: GateRow[] }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(rows.length);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => {
+      const kids = [...el.querySelectorAll<HTMLElement>(".r")];
+      kids.forEach((k) => (k.style.display = ""));
+      const limit = el.getBoundingClientRect().bottom;
+      const over = (k: HTMLElement, reserve: number) => k.getBoundingClientRect().bottom > limit - reserve;
+      let n = kids.findIndex((k) => over(k, 0));
+      if (n >= 0) { n = kids.findIndex((k) => over(k, 26)); }
+      if (n < 0) n = kids.length;
+      kids.forEach((k, i) => (k.style.display = i >= n ? "none" : ""));
+      setFit(n);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [rows]);
+  return (
+    <div className="w-gin" ref={box}>
+      {rows.length ? rows.map((g) => (
+        <div key={g.id} className={`r ${Date.now() - new Date(g.in_at).getTime() > LONG_MS ? "long" : ""}`}>
+          <span className="g-plate">{g.nopol}</span>
+          <span className="co">{g.company_name || "–"}<small>{g.in_dept_name}</small></span>
+          <span className="dur">{fDurShort(g.in_at)}</span>
+        </div>
+      )) : <div className="r empty"><span className="co">Tidak ada kendaraan di dalam area</span></div>}
+      {fit < rows.length && <div className="more">+{rows.length - fit} kendaraan lain</div>}
+    </div>
+  );
+}
 
 function useNow(ms = 1000) {
   const [now, setNow] = useState<Date | null>(null);
@@ -33,6 +72,10 @@ function Header({ site, live, loadedAt }: { site: Site | null; live: boolean; lo
 }
 
 function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolean }) {
+  const today = todayWIB();
+  const { inside, history } = useGateList(site?.id ?? null, today);
+  useTick(30000);
+  const gs = gateStats(history ?? [], inside ?? []);
   const { name, year } = monthName(D.month);
   const lastIdx = D.filled.lastIndexOf(true), li = lastIdx >= 0 ? lastIdx : 0, day = D.days[li];
   const ch = checks(D), ready = SLIDES.filter((s) => slideOk(D, s, ch)).length;
@@ -43,13 +86,15 @@ function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolea
   const max = Math.max(...D.days.map((x) => r4Day(D, x.d - 1)), 1);
   const evDays = new Set(D.events.map((e) => Number(e.day.slice(8, 10))));
   const feed = [...D.events].sort((a, b) => (b.day + b.created_at).localeCompare(a.day + a.created_at)).slice(0, 6);
-  const seen = useRef<Set<string> | null>(null);
-  const fresh = new Set<string>();
-  if (seen.current) feed.forEach((e) => { if (!seen.current!.has(e.id)) fresh.add(e.id); });
-  useEffect(() => { seen.current = new Set(D.events.map((e) => e.id)); }, [D.events]);
   const openNi = D.improvements.filter((n) => n.status !== "Selesai");
   const oldest = openNi.length ? Math.max(...openNi.map((n) => monthsOpen(n.opened_month, D.month))) : 0;
   const incOn = [...D.inc].filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
+  const tick = [
+    ...(gs.lama ? [{ lv: "warn", title: `${gs.lama} transporter lebih dari 4 jam di dalam area`, sub: "" }] : []),
+    ...(gs.temuan ? [{ lv: "warn", title: `${gs.temuan} pemeriksaan gate hari ini dengan temuan`, sub: "" }] : []),
+    ...(feed[0] ? [{ lv: "note", title: `Catatan terbaru ${Number(feed[0].day.slice(8, 10))} ${name.slice(0, 3)}: ${feed[0].description}`, sub: "" }] : []),
+    ...ch,
+  ];
   const delta = (v: number, avg: number) => { if (!avg) return null; const p = Math.round(((v - avg) / avg) * 100); return <span className={Math.abs(p) < 15 ? "ok" : "warn"}>{p > 0 ? "+" : ""}{p}% dari rata-rata</span>; };
 
   return (
@@ -57,12 +102,14 @@ function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolea
       <Header site={site} live={live} loadedAt={D.loadedAt} />
 
       <section className="w-today">
-        <div className="w-label">Data terakhir · {DOWL[day.dow]}, {day.d} {name}<em>{day.we ? "hari libur" : "hari kerja"}</em></div>
-        <div className="w-tiles">
+        <div className="w-label">Data terakhir · {DOWL[day.dow]}, {day.d} {name}<em>{day.we ? "hari libur" : "hari kerja"}</em><em className="r">Portal gate · hari ini, realtime</em></div>
+        <div className="w-tiles six">
           <div className="w-tile"><Count className="w-big" value={r4} /><b>Kendaraan roda empat</b>{delta(r4, r4avg)}</div>
-          <div className="w-tile"><Count className="w-big" value={mo} /><b>Motor</b>{delta(mo, avgOf("motor"))}</div>
-          <div className="w-tile"><Count className="w-big" value={vi} /><b>Visitor</b>{delta(vi, avgOf("visitor"))}</div>
-          <div className="w-tile accent"><div className="w-big"><Count value={pc} d={2} /><small>%</small></div><b>Checkpoint patroli bulan ini</b><span className={pc >= 99.5 ? "ok" : "warn"}>{fmt(D.patrol.target_checkpoint - D.patrol.actual_checkpoint)} terlewat</span></div>
+          <div className="w-tile"><Count className="w-big" value={mo} /><b>Motor · visitor {fmt(vi)}</b>{delta(mo, avgOf("motor"))}</div>
+          <div className="w-tile"><div className="w-big"><Count value={pc} d={2} /><small>%</small></div><b>Checkpoint patroli</b><span className={pc >= 99.5 ? "ok" : "warn"}>{fmt(D.patrol.target_checkpoint - D.patrol.actual_checkpoint)} terlewat bulan ini</span></div>
+          <div className="w-tile accent"><Count className="w-big" value={gs.dalam} /><b>Transporter di dalam · live</b><span className={gs.lama ? "bad" : "ok"}>{gs.lama ? `${gs.lama} lebih dari 4 jam` : "semua di bawah 4 jam"}</span></div>
+          <div className="w-tile"><div className="w-big"><Count value={gs.masuk} /><small style={{ color: "#8E8E93" }}> / {gs.keluar}</small></div><b>Masuk / keluar gate hari ini</b><span className="sm">rata-rata {gs.avgMs ? fDurMs(gs.avgMs) : "–"} di dalam</span></div>
+          <div className="w-tile"><Count className={`w-big ${gs.temuan ? "red" : ""}`} value={gs.temuan} /><b>Temuan gate hari ini</b><span className="sm">dari {gs.masuk} pemeriksaan</span></div>
         </div>
       </section>
 
@@ -83,22 +130,15 @@ function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolea
             })}
           </div>
         </div>
-        <div className="w-panel">
-          <div className="w-ph"><h3>Catatan terbaru</h3><span className="w-count">{D.events.length} bulan ini</span></div>
-          <ul className="w-feed">
-            {feed.length ? feed.map((e) => (
-              <li key={e.id} className={fresh.has(e.id) ? "new" : ""}>
-                <span className="t">{Number(e.day.slice(8, 10))} {name.slice(0, 3)}</span>
-                <span className={`k k-${e.kind}`}>{e.kind}</span>
-                <span className="x">{e.description}</span>
-              </li>
-            )) : <li><span className="x" style={{ opacity: .6 }}>Belum ada catatan bulan ini.</span></li>}
-          </ul>
+        <div className="w-panel w-gate">
+          <div className="w-ph"><h3>Portal gate · live</h3><span className="w-leg"><i className="a"></i>Masuk <i className="r"></i>Keluar · per jam</span></div>
+          <FlowChart today={history ?? []} day={today} dark />
+          <InsideList rows={inside ?? []} />
         </div>
       </section>
 
       <section className="w-bottom">
-        {CATS.map((c) => { const v = vsPrev(D, c.k); return (
+        {CATS.filter((c) => c.k !== "tamu").map((c) => { const v = vsPrev(D, c.k); return (
           <div className="w-cat" key={c.k}>
             <b>{c.n}</b>
             <Count className="w-num" value={v.t} />
@@ -112,6 +152,11 @@ function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolea
           <span className="sm">{incOn.slice(0, 2).map((i) => `${i.category} ${i.value}`).join(" · ") || "Nihil"}</span>
         </div>
         <div className="w-cat">
+          <b>Top transporter hari ini</b>
+          <span className="w-name">{gs.top[0]?.[0] ?? "–"}</span>
+          <span className="sm">{gs.top[0] ? `${gs.top[0][1]} kendaraan` : "belum ada kendaraan"}{gs.top[1] ? ` · berikutnya ${gs.top[1][0]}` : ""}</span>
+        </div>
+        <div className="w-cat">
           <b>Temuan terbuka</b><Count className="w-num" value={openNi.length} />
           <span className={oldest >= 3 ? "dn" : "sm"}>{openNi.length ? `tertua ${oldest} bulan` : "semua selesai"}</span>
           <span className="sm">KPI {name}: {k.monthly[m0] === null ? "–" : dec(k.monthly[m0] as number)} · laporan {ready}/{SLIDES.length}</span>
@@ -121,7 +166,7 @@ function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolea
       <footer className="w-ticker" aria-label="Perlu dicek">
         <span className="w-tl">Perlu dicek</span>
         <div className="w-tm"><div className="w-tt">
-          {(ch.length ? [...ch, ...ch] : [{ lv: "ok", title: "Semua data lengkap", sub: "" }, { lv: "ok", title: "Semua data lengkap", sub: "" }]).map((c, i) => (
+          {(tick.length ? [...tick, ...tick] : [{ lv: "ok", title: "Semua data lengkap", sub: "" }, { lv: "ok", title: "Semua data lengkap", sub: "" }]).map((c, i) => (
             <span key={i} className={`w-ti ${c.lv}`}><i></i>{c.title}{c.sub ? ` — ${c.sub}` : ""}</span>
           ))}
         </div></div>

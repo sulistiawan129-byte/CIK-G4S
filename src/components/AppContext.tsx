@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMonthData } from "@/lib/data";
 import { latestMonthFor as latestMonth } from "@/lib/latest";
-import type { ModuleKey } from "@/lib/constants";
+import { MODULES, isFull, isUserAdmin, type ModuleKey } from "@/lib/access";
 import type { MonthData, Profile, Site } from "@/lib/types";
 
 interface Ctx {
@@ -68,11 +68,12 @@ export function AppProvider({ profile, sites, children, lite }: { profile: Profi
   }, []);
   const fail = useCallback((e: Error) => toast(/row-level security|permission/i.test(e.message) ? "Akun ini tidak punya izin mengubah data." : `Gagal menyimpan: ${e.message}`, "err"), [toast]);
 
-  const canWrite = profile.role === "master_admin" || profile.role === "admin";
-  const canGate = ["master_admin", "admin", "gate"].includes(profile.role);
+  const canWrite = isFull(profile.role);
+  const canGate = isFull(profile.role) || profile.role === "gate";
   const can = useCallback((m: ModuleKey) => {
-    if (profile.role === "gate") return m === "gate";
-    return profile.role === "master_admin" || !profile.modules || profile.modules.includes(m);
+    const mod = MODULES.find((x) => x.key === m);
+    if (!mod || !(mod.roles as readonly string[]).includes(profile.role)) return false;
+    return isUserAdmin(profile.role) || !profile.modules || profile.modules.includes(m);
   }, [profile]);
 
   const value = useMemo<Ctx>(() => ({

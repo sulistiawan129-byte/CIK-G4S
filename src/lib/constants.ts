@@ -30,24 +30,8 @@ export const MON_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "
 export const DOW = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 export const DOWL = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-export const MODULES = [
-  { key: "ringkasan", href: "/", label: "Ringkasan" },
-  { key: "gate", href: "/gate", label: "Gate transporter" },
-  { key: "harian", href: "/harian", label: "Data harian" },
-  { key: "kejadian", href: "/kejadian", label: "Kejadian & patroli" },
-  { key: "personel", href: "/personel", label: "Personel & temuan" },
-  { key: "kpi", href: "/kpi", label: "KPI" },
-  { key: "laporan", href: "/laporan", label: "Laporan bulanan" },
-] as const;
-export type ModuleKey = (typeof MODULES)[number]["key"];
-
-export const ROLE_LABEL: Record<string, string> = {
-  master_admin: "Master Admin",
-  admin: "Admin / SPV G4S",
-  viewer: "Viewer FFI",
-  display: "Layar Ruang Security",
-  gate: "Petugas Gate",
-};
+export { MODULES, ROLE_LABEL } from "./access";
+export type { ModuleKey } from "./access";
 
 export const fmt = (n: number | null | undefined) => Number(n || 0).toLocaleString("id-ID");
 export const dec = (n: number, d = 2) => Number(n).toFixed(d).replace(".", ",");

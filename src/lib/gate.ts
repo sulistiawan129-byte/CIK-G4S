@@ -162,3 +162,35 @@ export function useTick(ms = 30000) {
   const [, set] = useState(0);
   useEffect(() => { const t = setInterval(() => set((n) => n + 1), ms); return () => clearInterval(t); }, [ms]);
 }
+
+/* ───────── Ringkasan gate untuk dashboard & layar eksekutif ───────── */
+export const LONG_MS = 4 * 3600000;
+export interface GateStats { masuk: number; keluar: number; dalam: number; temuan: number; lama: number; avgMs: number; top: [string, number][] }
+export function gateStats(today: GateRow[], inside: GateRow[]): GateStats {
+  const done = today.filter((g) => g.status === "out" && g.out_at);
+  const avgMs = done.length ? done.reduce((a, g) => a + (new Date(g.out_at!).getTime() - new Date(g.in_at).getTime()), 0) / done.length : 0;
+  const by: Record<string, number> = {};
+  today.forEach((g) => { const k = g.company_name || "–"; by[k] = (by[k] || 0) + 1; });
+  return {
+    masuk: today.length,
+    keluar: done.length,
+    dalam: inside.length,
+    temuan: today.filter((g) => g.finding_count > 0).length,
+    lama: inside.filter((g) => Date.now() - new Date(g.in_at).getTime() > LONG_MS).length,
+    avgMs,
+    top: Object.entries(by).sort((a, b) => b[1] - a[1]),
+  };
+}
+/** Jumlah masuk & keluar per jam (WIB) untuk satu hari. */
+export function hourlyFlow(today: GateRow[], day: string) {
+  const hin = Array(24).fill(0), hout = Array(24).fill(0);
+  const h = (iso: string) => Number(new Date(iso).toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })) % 24;
+  const dayOf = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+  today.forEach((g) => {
+    hin[h(g.in_at)]++;
+    if (g.out_at && dayOf(g.out_at) === day) hout[h(g.out_at)]++;
+  });
+  return { hin, hout };
+}
+export const fDurMs = (ms: number) => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return h ? `${h}j ${m % 60}m` : `${m}m`; };
+export const fDurShort = (from: string, to?: string | null) => fDurMs(Math.max(0, (to ? new Date(to).getTime() : Date.now()) - new Date(from).getTime()));

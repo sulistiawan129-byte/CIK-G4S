@@ -10,7 +10,7 @@ function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(
     params.get("e") === "nonaktif"
-      ? "Email dan password benar, tapi akun ini belum diberi akses Security Desk (atau sudah dinonaktifkan). Akun dari aplikasi lain seperti G-C perlu diaktifkan dulu oleh Master Admin di menu Pengguna → Beri akses."
+      ? "Email dan password benar, tapi akun ini belum diberi peran (atau sudah dinonaktifkan). Akun perlu diaktifkan dulu oleh Admin G4S / Admin GA di menu Pengguna → Beri akses."
       : params.get("e") === "schema"
         ? `Login berhasil, tapi data Security Desk belum bisa dibaca: ${params.get("m") ?? ""}. Pastikan schema.sql sudah dijalankan dan "security" sudah ditambahkan di Supabase → Project Settings → API → Exposed schemas.`
         : ""
@@ -46,13 +46,13 @@ function LoginForm() {
       <div>
         <div className="eyebrow">Masuk</div>
         <h2 style={{ fontSize: 30, marginTop: 6 }}>Security Desk</h2>
-        <p className="sub">Gunakan akun yang diberikan Master Admin.</p>
+        <p className="sub">Gunakan akun yang diberikan Admin G4S / Admin GA.</p>
       </div>
       {err && <div className="err" role="alert">{err}</div>}
       <label>Email<input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
       <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
       <button className="btn red" type="submit" disabled={busy}>{busy ? "Memeriksa…" : "Masuk"}</button>
-      <p className="note">Lupa password? Minta Master Admin untuk mengatur ulang. Setelah masuk, password bisa diganti sendiri lewat menu akun → Ubah password. Ada kendala? Buka <a href="/api/health" target="_blank" rel="noreferrer">/api/health</a> untuk cek koneksi.</p>
+      <p className="note">Lupa password? Minta Admin G4S / Admin GA untuk mengatur ulang. Setelah masuk, password bisa diganti sendiri lewat menu akun → Ubah password. Ada kendala? Buka <a href="/api/health" target="_blank" rel="noreferrer">/api/health</a> untuk cek koneksi.</p>
     </form>
   );
 }
@@ -64,7 +64,7 @@ export default function LoginPage() {
         <div className="wm" style={{ color: "#fff" }}><i></i>Security Desk</div>
         <div>
           <div className="eyebrow">Sistem operasional security</div>
-          <h1 style={{ marginTop: 10 }}>Data harian.<br />Laporan bulanan.<br />Satu tempat.</h1>
+          <h1 style={{ marginTop: 10 }}>Security &amp; transporter.<br />Laporan bulanan.<br />Satu tempat.</h1>
           <p>Input di pos, pantau di layar ruang Security, laporan ke klien terbentuk sendiri.</p>
         </div>
         <div className="note" style={{ color: "rgba(255,255,255,.5)" }}>Akses dibatasi per peran dan per site.</div>

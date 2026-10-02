@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { MODULES, ROLE_LABEL } from "@/lib/constants";
+import { MODULES, ROLE_DESC, ROLE_LABEL, ROLES, allSites, isUserAdmin } from "@/lib/access";
 import type { Profile, Role } from "@/lib/types";
 
 interface Unlinked { id: string; email: string; full_name: string; app_role: string | null; last_sign_in_at: string | null }
@@ -13,7 +13,7 @@ export default function Pengguna() {
   const { profile, sites, toast, fail } = useApp();
   const [users, setUsers] = useState<Profile[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
-  const [form, setForm] = useState({ email: "", full_name: "", password: "", role: "admin" as Role, site_ids: sites.map((s) => s.id) });
+  const [form, setForm] = useState({ email: "", full_name: "", password: "", role: "management" as Role, site_ids: sites.map((s) => s.id) });
   const [busy, setBusy] = useState(false);
   const [newPw, setNewPw] = useState<{ email: string; pw: string } | null>(null);
   const [unlinked, setUnlinked] = useState<Unlinked[] | null>(null);
@@ -40,7 +40,7 @@ export default function Pengguna() {
     return () => { sb.removeChannel(ch); clearInterval(t); };
   }, [load, sb]);
 
-  if (profile.role !== "master_admin") return <div className="errbox">Hanya Master Admin.</div>;
+  if (!isUserAdmin(profile.role)) return <div className="errbox">Hanya Admin G4S dan Admin GA yang bisa mengelola pengguna.</div>;
 
   async function update(id: string, patch: Partial<Profile>) {
     setUsers((p) => p.map((u) => (u.id === id ? { ...u, ...patch } : u)));
@@ -54,7 +54,7 @@ export default function Pengguna() {
     const j = await r.json();
     setBusy(false);
     if (!r.ok) return toast(j.error ?? "Gagal membuat akun", "err");
-    toast(j.existed ? `${form.email} sudah punya akun; akses Security Desk ditambahkan (password lama tetap)` : `Akun ${form.email} dibuat`);
+    toast(j.existed ? `${form.email} sudah punya akun; aksesnya ditambahkan (password lama tetap)` : `Akun ${form.email} dibuat`);
     setForm({ ...form, email: "", full_name: "", password: "" });
     load();
   }
@@ -66,7 +66,7 @@ export default function Pengguna() {
     setNewPw({ email: u.email ?? "", pw });
   }
   async function giveAccess(u: Unlinked) {
-    const g = grant[u.id] ?? { role: "viewer" as Role, sites: sites.map((x) => x.id) };
+    const g = grant[u.id] ?? { role: "management" as Role, sites: sites.map((x) => x.id) };
     const { error } = await sb.rpc("grant_access", { p_user: u.id, p_role: g.role, p_sites: g.sites, p_name: u.full_name });
     if (error) return toast(error.message, "err");
     toast(`${u.email} sekarang bisa masuk sebagai ${ROLE_LABEL[g.role]}`);
@@ -79,7 +79,8 @@ export default function Pengguna() {
       <section>
         <div className="eyebrow">Pengguna & akses</div>
         <h1>Siapa boleh melihat dan mengubah apa</h1>
-        <p className="lede">Akun login dipakai bersama aplikasi lain di project Supabase yang sama; akses Security Desk diatur terpisah di sini. Peran menentukan boleh mengubah data atau hanya melihat. Akun Petugas Gate masuk lewat link khusus <b>/pos</b>. Site membatasi data plant mana yang terlihat. Menu membatasi halaman yang muncul.</p>
+        <p className="lede">Satu akun untuk seluruh sistem: modul Security dan modul Kepatuhan transporter (G-C). Peran menentukan menu dan apa yang boleh diubah. Site membatasi plant untuk Petugas Gate dan Layar ruang Security; peran lain melihat semua site. Menu bisa dibatasi lagi per akun.</p>
+        <ul className="roleleg">{ROLES.map((r) => <li key={r}><b>{ROLE_LABEL[r]}</b><span>{ROLE_DESC[r]}</span></li>)}</ul>
       </section>
 
       <section className="sec">
@@ -88,7 +89,7 @@ export default function Pengguna() {
           <label>Nama<input type="text" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></label>
           <label>Email<input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
           <label>Password awal<input type="password" required minLength={8} title="Kalau email sudah punya akun di aplikasi lain, password lama tetap dipakai" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
-          <label>Peran<select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <label>Peran<select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>{ROLES.map((k) => <option key={k} value={k}>{ROLE_LABEL[k]}</option>)}</select></label>
           <button className="btn red" disabled={busy}>{busy ? "Membuat…" : "Buat akun"}</button>
         </form>
         {sites.length > 1 && <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" checked={form.site_ids.includes(s.id)} onChange={() => setForm({ ...form, site_ids: toggleIn(form.site_ids, s.id) })} />{s.name}</label>)}</div>}
@@ -98,10 +99,10 @@ export default function Pengguna() {
       <section className="sec">
         <div>
           <h2>Akun dari aplikasi lain belum punya akses{unlinked ? ` (${unlinked.length})` : ""}</h2>
-          <p className="sub">Akun ini sudah bisa login di aplikasi lain pada project yang sama (mis. G-C), tetapi belum diberi akses Security Desk. Pilih peran dan site, lalu klik Beri akses. Password tetap sama dengan aplikasi asalnya.</p>
+          <p className="sub">Akun ini sudah terdaftar di login Supabase, tetapi belum diberi peran di sistem ini. Pilih peran dan site, lalu klik Beri akses. Password tetap sama dengan aplikasi asalnya.</p>
         </div>
         {unlinkedErr === "missing" ? (
-          <div className="errbox">Fitur ini butuh fungsi database baru. Jalankan <b>supabase/akses_akun.sql</b> di Supabase → SQL Editor, lalu muat ulang halaman ini.</div>
+          <div className="errbox">Fitur ini butuh fungsi database. Jalankan <b>supabase/akses_akun.sql</b> lalu <b>supabase/merger_gc.sql</b> di Supabase → SQL Editor, lalu muat ulang halaman ini.</div>
         ) : unlinkedErr ? (
           <div className="errbox">{unlinkedErr}</div>
         ) : unlinked === null ? <div className="sk" style={{ height: 80 }} /> : unlinked.length === 0 ? (
@@ -109,14 +110,14 @@ export default function Pengguna() {
         ) : (
           <ul className="rows users">
             {unlinked.map((u) => {
-              const g = grant[u.id] ?? { role: "viewer" as Role, sites: sites.map((x) => x.id) };
+              const g = grant[u.id] ?? { role: "management" as Role, sites: sites.map((x) => x.id) };
               const setG = (patch: Partial<typeof g>) => setGrant({ ...grant, [u.id]: { ...g, ...patch } });
               return (
                 <li key={u.id}>
                   <div><b>{u.full_name || "(tanpa nama)"}</b><div className="sub" style={{ margin: 0 }}>{u.email}</div>
                     <div className="note">{u.app_role ? `Peran di aplikasi lain: ${u.app_role}` : ""}{u.last_sign_in_at ? ` · login terakhir ${new Date(u.last_sign_in_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}` : ""}</div></div>
-                  <select value={g.role} onChange={(e) => setG({ role: e.target.value as Role })} aria-label={`Peran untuk ${u.email}`}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-                  <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={g.role === "master_admin"} checked={g.role === "master_admin" || g.sites.includes(s.id)} onChange={() => setG({ sites: toggleIn(g.sites, s.id) })} />{s.code}</label>)}</div>
+                  <select value={g.role} onChange={(e) => setG({ role: e.target.value as Role })} aria-label={`Peran untuk ${u.email}`}>{ROLES.map((k) => <option key={k} value={k}>{ROLE_LABEL[k]}</option>)}</select>
+                  <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={allSites(g.role)} checked={allSites(g.role) || g.sites.includes(s.id)} onChange={() => setG({ sites: toggleIn(g.sites, s.id) })} />{s.code}</label>)}</div>
                   <button className="btn red sm" onClick={() => giveAccess(u)}>Beri akses</button>
                 </li>
               );
@@ -131,13 +132,13 @@ export default function Pengguna() {
           {users.map((u) => (
             <li key={u.id}>
               <div><b>{u.full_name || "(tanpa nama)"}</b><div className="sub" style={{ margin: 0 }}>{u.email}</div>
-                <button className="link" style={{ fontSize: 12.5, marginTop: 4 }} onClick={() => resetPw(u)} disabled={u.id === profile.id}>Atur ulang password</button><div className="note">Akun dipakai bersama aplikasi lain; password baru berlaku di sana juga.</div></div>
-              <select value={u.role} disabled={u.id === profile.id} onChange={(e) => update(u.id, { role: e.target.value as Role })} aria-label="Peran">{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+                <button className="link" style={{ fontSize: 12.5, marginTop: 4 }} onClick={() => resetPw(u)} disabled={u.id === profile.id}>Atur ulang password</button><div className="note"></div></div>
+              <select value={u.role} disabled={u.id === profile.id} onChange={(e) => update(u.id, { role: e.target.value as Role })} aria-label="Peran">{ROLES.map((k) => <option key={k} value={k}>{ROLE_LABEL[k]}</option>)}</select>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={u.role === "master_admin"} checked={u.role === "master_admin" || u.site_ids.includes(s.id)} onChange={() => update(u.id, { site_ids: toggleIn(u.site_ids, s.id) })} />{s.code}</label>)}</div>
-                {u.role !== "master_admin" && u.role !== "display" && u.role !== "gate" && (
+                <div className="checks">{sites.map((s) => <label key={s.id}><input type="checkbox" disabled={allSites(u.role)} checked={allSites(u.role) || u.site_ids.includes(s.id)} onChange={() => update(u.id, { site_ids: toggleIn(u.site_ids, s.id) })} />{s.code}</label>)}</div>
+                {!isUserAdmin(u.role) && MODULES.filter((m) => (m.roles as readonly string[]).includes(u.role)).length > 1 && (
                   <div className="checks" title="Kosongkan semua = semua menu">
-                    {MODULES.map((m) => <label key={m.key}><input type="checkbox" checked={!u.modules || u.modules.includes(m.key)} onChange={() => update(u.id, { modules: toggleIn(u.modules ?? MODULES.map((x) => x.key), m.key) })} />{m.label}</label>)}
+                    {MODULES.filter((m) => (m.roles as readonly string[]).includes(u.role)).map((m) => <label key={m.key}><input type="checkbox" checked={!u.modules || u.modules.includes(m.key)} onChange={() => update(u.id, { modules: toggleIn(u.modules ?? MODULES.map((x) => x.key), m.key) })} />{m.label}</label>)}
                   </div>
                 )}
               </div>

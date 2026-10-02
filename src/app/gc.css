@@ -1,0 +1,57 @@
+/* Modul G-C (kepatuhan transporter) — Tailwind, hanya berlaku di dalam .gc */
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --gc-ink-900:18 18 19; --gc-ink-800:31 31 34; --gc-ink-700:42 43 46; --gc-ink-600:60 61 66;
+  --gc-inkbg-900:20 20 22; --gc-inkbg-800:31 31 34; --gc-inkbg-700:42 43 46; --gc-inkbg-600:60 61 66;
+  --gc-canvas:244 244 242; --gc-surface:255 255 255; --gc-whitebg:255 255 255;
+  --gc-steel-50:244 244 242; --gc-steel-100:227 227 223; --gc-steel-300:178 179 184; --gc-steel-400:155 156 162;
+  --gc-steel-500:110 111 117; --gc-steel-600:93 94 99; --gc-steel-700:70 71 76;
+  --gc-brand-50:251 234 231; --gc-brand-100:246 205 200; --gc-brand-400:232 56 42; --gc-brand-500:218 41 28; --gc-brand-600:184 32 15; --gc-brand-700:150 25 12;
+  --gc-clear-50:228 242 234; --gc-clear-500:31 150 90; --gc-clear-600:31 122 77; --gc-clear-700:22 96 60;
+  --gc-alert-50:251 234 231; --gc-alert-500:200 16 46; --gc-alert-600:162 13 37;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --gc-ink-900:241 241 238; --gc-ink-800:225 225 221; --gc-ink-700:205 205 200; --gc-ink-600:180 180 176;
+  --gc-inkbg-900:42 42 46; --gc-inkbg-800:54 54 58; --gc-inkbg-700:66 66 70; --gc-inkbg-600:80 80 84;
+  --gc-canvas:15 15 16; --gc-surface:24 24 26; --gc-whitebg:24 24 26;
+  --gc-steel-50:32 32 35; --gc-steel-100:44 44 48; --gc-steel-300:96 97 102; --gc-steel-400:120 121 127;
+  --gc-steel-500:150 151 156; --gc-steel-600:167 168 173; --gc-steel-700:190 190 195;
+  --gc-brand-50:46 21 18; --gc-brand-100:70 28 22; --gc-brand-600:255 122 110; --gc-brand-700:255 150 140;
+  --gc-clear-50:17 39 27; --gc-clear-600:86 196 137; --gc-clear-700:110 210 155;
+  --gc-alert-50:46 21 18; --gc-alert-600:255 122 110;
+}}
+:root[data-theme="dark"]{
+  --gc-ink-900:241 241 238; --gc-ink-800:225 225 221; --gc-ink-700:205 205 200; --gc-ink-600:180 180 176;
+  --gc-inkbg-900:42 42 46; --gc-inkbg-800:54 54 58; --gc-inkbg-700:66 66 70; --gc-inkbg-600:80 80 84;
+  --gc-canvas:15 15 16; --gc-surface:24 24 26; --gc-whitebg:24 24 26;
+  --gc-steel-50:32 32 35; --gc-steel-100:44 44 48; --gc-steel-300:96 97 102; --gc-steel-400:120 121 127;
+  --gc-steel-500:150 151 156; --gc-steel-600:167 168 173; --gc-steel-700:190 190 195;
+  --gc-brand-50:46 21 18; --gc-brand-100:70 28 22; --gc-brand-600:255 122 110; --gc-brand-700:255 150 140;
+  --gc-clear-50:17 39 27; --gc-clear-600:86 196 137; --gc-clear-700:110 210 155;
+  --gc-alert-50:46 21 18; --gc-alert-600:255 122 110;
+}
+
+.gc{color:rgb(var(--gc-ink-900));font-family:var(--body)}
+.gc *,.gc *::before,.gc *::after{border-width:0;border-style:solid;border-color:rgb(var(--gc-steel-100))}
+.gc h1,.gc h2,.gc h3,.gc h4,.gc p{margin:0}
+.gc a{color:inherit;text-decoration:none}
+.gc h1,.gc h2,.gc h3{text-transform:none;letter-spacing:normal}
+.gc ul,.gc ol{list-style:none;margin:0;padding:0}
+.gc table{border-collapse:collapse}
+.gc button{background:transparent;padding:0;font:inherit;color:inherit}
+.gc img,.gc svg{vertical-align:middle}
+.gc .card{background:rgb(var(--gc-surface));border:1px solid rgb(var(--gc-steel-100));border-radius:12px;box-shadow:var(--card-shadow)}
+.gc .input{width:100%;border:1px solid rgb(var(--gc-steel-100));border-radius:8px;padding:.6rem .85rem;font-size:.875rem;background:rgb(var(--gc-surface));color:rgb(var(--gc-ink-900));outline:none;transition:border-color .15s}
+.gc .input:focus{border-color:var(--red);box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 18%,transparent)}
+.gc .table-row-hover{transition:background-color .15s}
+.gc .table-row-hover:hover{background:rgb(var(--gc-brand-50) / .6)}
+.gc .hazard-edge{background-image:repeating-linear-gradient(135deg,#DA291C 0 8px,#141416 8px 16px)}
+@keyframes gc-fade-up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.gc .animate-fade-up{animation:gc-fade-up .35s ease both}
+/* grafik recharts */
+.gc .recharts-cartesian-axis-tick-value{fill:rgb(var(--gc-steel-500))}
+.gc .recharts-cartesian-grid line{stroke:rgb(var(--gc-steel-100))}
+.gc .recharts-default-tooltip{background:rgb(var(--gc-surface))!important;border-color:rgb(var(--gc-steel-100))!important;border-radius:8px}
+.gc .recharts-legend-item-text{color:rgb(var(--gc-ink-700))!important}

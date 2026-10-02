@@ -21,7 +21,7 @@ export function PosShell({ children }: { children: React.ReactNode }) {
           </select>
         ) : <span className="per">{site?.name ?? ""}</span>}
         <div className="sp"></div>
-        {path !== "/pos/baru" && <Link href="/pos/baru" className="btn red sm pos-in">+ Gate In</Link>}
+        {path !== "/pos/baru" && path !== "/pos" && <Link href="/pos/baru" className="btn red sm pos-in">+ Gate In</Link>}
         <div className="pos-user">
           <span className="av">{initials}</span>
           <span className="pos-name">{profile.full_name?.split(" ")[0]}</span>
@@ -29,7 +29,12 @@ export function PosShell({ children }: { children: React.ReactNode }) {
           <form action="/auth/signout?to=pos" method="post"><button className="pos-out">Keluar</button></form>
         </div>
       </div></header>
-      <main className="pos-main">{children}</main>
+      <nav className="pos-nav" aria-label="Menu petugas">
+        {[["/pos", "Gate in / out"], ["/pos/nc", "Input NC"], ["/pos/pemeriksaan", "Total pemeriksaan"], ["/pos/nc-hari-ini", "NC hari ini"]].map(([h, l]) => (
+          <Link key={h} href={h} aria-current={(h === "/pos" ? path === "/pos" || /^\/pos\/(baru|[0-9a-f-]{36})/.test(path) : path.startsWith(h)) ? "page" : undefined}>{l}</Link>
+        ))}
+      </nav>
+      <main className={`pos-main ${path === "/pos" || path.startsWith("/pos/nc") || path.startsWith("/pos/pemeriksaan") ? "wide" : ""}`}>{children}</main>
       <ChangePassword email={profile.email ?? ""} open={pwOpen} onClose={() => setPwOpen(false)} onDone={(m) => toast(m)} />
     </GateBaseCtx.Provider>
   );

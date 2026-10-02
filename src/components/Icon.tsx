@@ -9,6 +9,9 @@ const P: Record<string, string> = {
   pengguna: "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4",
   display: "M3 5h18v11H3zM8 20h8M12 16v4",
   gate: "M3 21V8l9-5 9 5v13M7 21v-8h10v8M7 17h10",
+  nc: "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM12 8v5M12 16v.5",
+  input: "M12 5v14M5 12h14M4 4h16v16H4z",
+  supplier: "M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
 };
 export function Icon({ name, size = 18 }: { name: string; size?: number }) {
   return (

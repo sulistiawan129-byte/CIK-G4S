@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { canPath, homeOf, normRole } from "@/lib/access";
 
 /**
  * Menyegarkan sesi Supabase di setiap request dan mengarahkan:
  *  - belum login        → /login
- *  - akun peran display → hanya boleh /display
- *  - akun petugas gate  → aplikasi petugas /pos (dan /gate)
+ *  - halaman yang tidak boleh dibuka peran ini → halaman awal peran (lihat lib/access.ts)
  *  - domain khusus petugas (env POS_HOST, opsional) → langsung ke /pos
  */
 export async function middleware(req: NextRequest) {
@@ -69,17 +69,12 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
   }
-  if (profile?.role === "display" && !path.startsWith("/display")) {
+  const role = normRole(profile?.role);
+  if (!canPath(role, path)) {
     const url = req.nextUrl.clone();
-    url.pathname = "/display";
+    url.pathname = homeOf(role);
     url.search = "";
-    return NextResponse.redirect(url);
-  }
-  if (profile?.role === "gate" && !isPos && !path.startsWith("/gate")) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/pos";
-    url.search = "";
-    return NextResponse.redirect(url);
+    if (url.pathname !== path) return NextResponse.redirect(url);
   }
   return res;
 }

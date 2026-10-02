@@ -1,7 +1,8 @@
 import type { CatKey } from "./constants";
 import type { DayInfo } from "./dates";
 
-export type Role = "master_admin" | "admin" | "viewer" | "display" | "gate";
+import type { Role } from "./access";
+export type { Role };
 export interface Profile { id: string; email: string | null; full_name: string | null; role: Role; site_ids: string[]; modules: string[] | null; active: boolean }
 export interface Site { id: string; code: string; name: string; client: string | null }
 

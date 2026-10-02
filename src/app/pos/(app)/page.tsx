@@ -1,1 +1,3 @@
-export { default } from "../../(app)/gate/page";
+"use client";
+import { PosHome } from "@/components/gate/PosHome";
+export default function PosPage() { return <PosHome />; }

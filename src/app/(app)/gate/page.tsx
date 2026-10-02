@@ -3,7 +3,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useApp } from "@/components/AppContext";
-import { fDur, fTime, gateApi, todayWIB, useGateList, useTick, type GateRow, useGateBase } from "@/lib/gate";
+import { isFull } from "@/lib/access";
+import { fDur, fDurMs, fTime, gateApi, gateStats, todayWIB, useGateList, useTick, type GateRow, useGateBase } from "@/lib/gate";
+import { FlowChart } from "@/components/gate/Flow";
 
 const LONG_HOURS = 4;
 
@@ -36,7 +38,7 @@ export default function GatePage() {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const { inside, history, live } = useGateList(siteId, day);
   useTick(30000);
-  const isAdmin = profile.role === "master_admin" || profile.role === "admin";
+  const isAdmin = isFull(profile.role);
   const base = useGateBase();
 
   const shown = useMemo(() => {
@@ -65,43 +67,48 @@ export default function GatePage() {
     catch (e) { fail(e as Error); }
   }
 
-  const stats = {
-    masuk: history?.length ?? 0,
-    keluar: history?.filter((g) => g.status === "out").length ?? 0,
-    temuan: history?.filter((g) => g.finding_count > 0).length ?? 0,
-    lama: (inside ?? []).filter((g) => (Date.now() - new Date(g.in_at).getTime()) / 3600000 >= LONG_HOURS).length,
-  };
+  const gs = gateStats(history ?? [], inside ?? []);
+  const stats = { masuk: gs.masuk, keluar: gs.keluar, temuan: gs.temuan, lama: gs.lama };
   const isToday = day === todayWIB();
   const selectable = shown.filter((g) => g.status === "out" && (!g.sl_at || !g.spv_at));
 
   return (
-    <div className="page enter gate-home">
-      <section className="g-hero">
-        <div className="g-hero-l">
-          <div className="eyebrow">Gate transporter · {site?.name ?? ""}</div>
-          <h1>{insideShown.length} kendaraan di dalam area</h1>
-          <p className="lede">{isToday ? "Hari ini" : day}: {stats.masuk} masuk, {stats.keluar} keluar, {stats.temuan} dengan temuan.{stats.lama ? ` ${stats.lama} kendaraan sudah lebih dari ${LONG_HOURS} jam di dalam.` : ""}</p>
+    <div className="dgrid enter gate-home">
+      <section className="dband gband" aria-label="Ringkasan gate">
+        <div className="gb-stats">
+          <div><b>{gs.masuk}</b><span>Masuk {isToday ? "hari ini" : day}</span></div>
+          <div><b>{gs.keluar}</b><span>Keluar</span></div>
+          <div><b>{gs.dalam}</b><span>Di dalam · live</span></div>
+          <div className={gs.lama ? "bad" : ""}><b>{gs.lama}</b><span>&gt; {LONG_HOURS} jam</span></div>
+          <div className={gs.temuan ? "bad" : ""}><b>{gs.temuan}</b><span>Ada temuan</span></div>
+          <div><b>{gs.avgMs ? fDurMs(gs.avgMs) : "–"}</b><span>Rata-rata di dalam</span></div>
         </div>
-        <div className="g-hero-r">
-          {canGate && <Link href={`${base}/baru`} className="g-big in"><span>Gate In</span><small>Kendaraan datang</small></Link>}
-          <form className="g-big out" onSubmit={goOut}>
-            <label htmlFor="g-find"><span>Gate Out</span><small>Ketik nopol kendaraan yang keluar</small></label>
-            <input id="g-find" className="g-in" placeholder="Cari nopol…" autoCapitalize="characters" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="gb-act">
+          {canGate && <Link href={`${base}/baru`} className="btn red">+ Gate In</Link>}
+          <form onSubmit={goOut} className="gb-find">
+            <input className="g-in" placeholder={canGate ? "Gate Out · ketik nopol…" : "Cari nopol…"} aria-label="Cari nopol untuk Gate Out" autoCapitalize="characters" value={q} onChange={(e) => setQ(e.target.value)} />
           </form>
         </div>
       </section>
 
-      <section className="sec">
-        <div className="sechead">
-          <div><h2>Di dalam area</h2><p className="sub">Urut dari yang paling lama. Kartu merah: lebih dari {LONG_HOURS} jam.</p></div>
-          <span className={`livep ${live ? "on" : ""}`}><i></i>{live ? "Live" : "…"}</span>
-        </div>
+      <section className="dcard c8">
+        <div className="dch"><h2>Di dalam area</h2><span className={`live ${live ? "on" : ""}`}><i></i>{live ? "LIVE" : "…"}</span><span className="sub" style={{ margin: 0 }}>{site?.name ?? ""} · merah: lebih dari {LONG_HOURS} jam</span></div>
         {inside === null ? <div className="sk" style={{ height: 120 }} /> : insideShown.length ? (
           <div className="g-cards">{insideShown.map((g) => <Card key={g.id} g={g} />)}</div>
         ) : <div className="g-empty">{q ? `Tidak ada kendaraan “${q}” di dalam area.` : "Tidak ada kendaraan di dalam area."}</div>}
       </section>
 
-      <section className="sec">
+      <section className="dcard c4">
+        <div className="dch"><h2>Arus per jam</h2><span className="sub" style={{ margin: 0 }}>{isToday ? "hari ini" : day}</span></div>
+        <FlowChart today={history ?? []} day={day} />
+        <div className="dleg" style={{ margin: "6px 0 14px" }}><span><i style={{ background: "var(--bar)" }}></i>Masuk</span><span><i style={{ background: "#DA291C" }}></i>Keluar</span></div>
+        <div className="dch" style={{ marginTop: 4 }}><h2>Transporter teratas</h2></div>
+        {gs.top.length ? (
+          <div className="hbar">{gs.top.slice(0, 6).map(([n, v]) => <div className="r" key={n}><span>{n}</span><span className="t"><i style={{ width: `${(v / gs.top[0][1]) * 100}%` }}></i></span><b>{v}</b></div>)}</div>
+        ) : <p className="sub">Belum ada kendaraan.</p>}
+      </section>
+
+      <section className="dcard c12">
         <div className="sechead">
           <div><h2>Riwayat pemeriksaan</h2><p className="sub">Semua kendaraan yang masuk pada tanggal ini.</p></div>
           <input type="date" className="g-in g-date" value={day} max={todayWIB()} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="Tanggal" />

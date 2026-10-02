@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
-const ROLES = ["master_admin", "admin", "viewer", "display", "gate"];
+import { ROLES as ALL_ROLES, isUserAdmin } from "@/lib/access";
+const ROLES: readonly string[] = ALL_ROLES;
 
-/** Membuat akun baru. Hanya master admin. Service role key tidak pernah dikirim ke browser. */
+/** Membuat akun baru. Hanya Admin G4S / Admin GA. Service role key tidak pernah dikirim ke browser. */
 export async function POST(req: Request) {
   const sb = supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "Belum login." }, { status: 401 });
   const { data: me } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle();
-  if (me?.role !== "master_admin" || !me.active) return NextResponse.json({ error: "Hanya Master Admin yang boleh membuat akun." }, { status: 403 });
+  if (!isUserAdmin(me?.role) || !me?.active) return NextResponse.json({ error: "Hanya Admin G4S / Admin GA yang boleh membuat akun." }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
   const full_name = String(body.full_name ?? "").trim();
-  const role = String(body.role ?? "viewer");
+  const role = String(body.role ?? "management");
   const site_ids = Array.isArray(body.site_ids) ? body.site_ids.map(String) : [];
   if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "Email tidak valid." }, { status: 400 });
   if (password.length < 8) return NextResponse.json({ error: "Password minimal 8 karakter." }, { status: 400 });
@@ -54,13 +55,13 @@ async function findUserId(admin: ReturnType<typeof supabaseAdmin>, email: string
   return null;
 }
 
-/** Mengatur ulang password pengguna lain. Hanya master admin. */
+/** Mengatur ulang password pengguna lain. Hanya Admin G4S / Admin GA. */
 export async function PATCH(req: Request) {
   const sb = supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "Belum login." }, { status: 401 });
   const { data: me } = await sb.from("profiles").select("role, active").eq("id", user.id).maybeSingle();
-  if (me?.role !== "master_admin" || !me.active) return NextResponse.json({ error: "Hanya Master Admin." }, { status: 403 });
+  if (!isUserAdmin(me?.role) || !me?.active) return NextResponse.json({ error: "Hanya Admin G4S / Admin GA." }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const id = String(body.id ?? ""), password = String(body.password ?? "");
   if (!id || password.length < 8) return NextResponse.json({ error: "Password minimal 8 karakter." }, { status: 400 });

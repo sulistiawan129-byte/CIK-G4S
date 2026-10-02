@@ -9,6 +9,10 @@ import { shiftNow } from "@/lib/dates";
 import { SLIDES, slideOk } from "@/lib/slides";
 import { api } from "@/lib/data";
 import type { MonthData } from "@/lib/types";
+import { LONG_MS, fDurMs, fDurShort, gateStats, todayWIB, useGateList, useTick } from "@/lib/gate";
+import { FlowChart } from "@/components/gate/Flow";
+import { useNcSummary } from "@/lib/gc/summary";
+import { NcSummaryCard, NcTopCard } from "@/components/NcCards";
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -162,11 +166,15 @@ function Todo({ D }: { D: MonthData }) {
 }
 
 export default function Home() {
-  const { D, error } = useApp();
+  const { D, error, siteId } = useApp();
   const [sel, setSel] = useState(1);
   const [drawer, setDrawer] = useState<CatKey | null>(null);
   const [dk, setDk] = useState<CatKey>("karyawan");
   const inited = useRef<string | null>(null);
+  const day = todayWIB();
+  const { inside, history, live: gLive } = useGateList(siteId, day);
+  useTick(30000);
+  const { data: nc } = useNcSummary(D?.month ?? null);
 
   useEffect(() => {
     if (!D || inited.current === D.month) return;
@@ -180,45 +188,81 @@ export default function Home() {
   const ch = checks(D), ok = SLIDES.filter((s) => slideOk(D, s, ch)).length;
   const r4c = CATS.filter((c) => c.r4), r4h = D.totals13.karyawan.map((_, i) => r4c.reduce((a, c) => a + D.totals13[c.k][i], 0));
   const r4 = r4h[12], mo = agg(D, "motor").total, moh = D.totals13.motor;
-  const inc = incTotal(D), incOn = [...D.inc].filter((i) => i.value > 0).sort((a, b) => b.value - a.value), pc = patrolPct(D);
-  const dl = (a: number, b: number) => <><span className={a < b ? "dn" : "upc"}>{a < b ? "▼" : "▲"} {fmt(Math.abs(a - b))}</span> dari bulan lalu</>;
+  const inc = incTotal(D), incOn = [...D.inc].filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
+  const gs = gateStats(history ?? [], inside ?? []);
+  const dl = (a: number, b: number) => <span className={a < b ? "dn" : "up"}>{a < b ? "▼" : "▲"} {fmt(Math.abs(a - b))} dari bulan lalu</span>;
   const open = (k: CatKey) => { setDk(k); setDrawer(k); };
+  const off = 314.16 * (1 - ok / SLIDES.length);
 
   return (
-    <div className="page enter">
-      <section className="hero">
+    <div className="dgrid enter">
+      <section className="dband" aria-label="Ringkasan bulan">
         <div>
-          <div className="live"><span className="pulse"></span><Clock /></div>
-          <div className="eyebrow">Periode laporan</div>
-          <h1 className="xl">{name} {year}</h1>
-          <p className="lede">{ch.length ? <><b>{ok} dari {SLIDES.length} slide siap.</b> {ch.length} hal perlu dicek sebelum laporan dikirim.</> : <><b>Semua slide siap.</b> Laporan bisa dikirim.</>}</p>
-          <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
-            <button className="btn light" onClick={() => document.getElementById("todo")?.scrollIntoView({ behavior: "smooth" })}>{ch.length ? "Selesaikan yang tersisa ↓" : "Tidak ada yang tersisa"}</button>
-            <Link className="btn ghost" href="/laporan">Buka laporan</Link>
+          <div className="dring" aria-label={`${ok} dari ${SLIDES.length} slide siap`}>
+            <svg viewBox="0 0 120 120" width="76" height="76"><circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="11" /><circle cx="60" cy="60" r="50" fill="none" stroke="#DA291C" strokeWidth="11" strokeDasharray="314.16" style={{ strokeDashoffset: off, transition: "stroke-dashoffset 1s" }} /></svg>
+            <b>{ok}</b>
+          </div>
+          <div>
+            <div className="eyebrow">Periode laporan</div>
+            <div className="dper">{name} {year}</div>
+            <div className="dready">{ok} dari {SLIDES.length} slide siap{ch.length ? ` · ${ch.length} hal perlu dicek` : " · siap dikirim"} · <Link href="/laporan" style={{ color: "#fff" }}>Buka laporan →</Link></div>
           </div>
         </div>
-        <Ring ok={ok} total={SLIDES.length} />
+        <button className="dk" onClick={() => open("karyawan")}><Count className="dkv" value={r4} /><div className="dkl">Kendaraan roda empat</div><div className="dkd">{dl(r4, r4h[11])}</div><Spark vals={r4h} /></button>
+        <button className="dk" onClick={() => open("motor")}><Count className="dkv" value={mo} /><div className="dkl">Motor</div><div className="dkd">{dl(mo, moh[11])}</div><Spark vals={moh} /></button>
+        <Link className="dk" href="/kejadian"><Count className="dkv" value={inc} /><div className="dkl">Kejadian tercatat</div><div className="dkd">{incOn.slice(0, 2).map((i) => `${i.category} ${i.value}`).join(" · ") || "Belum ada kejadian"}</div></Link>
+        <Link className="dk" href="/gate"><Count className="dkv" value={gs.dalam} /><div className="dkl">Transporter di dalam · live</div><div className="dkd"><span className={gs.lama ? "dn" : "up"}>{gs.masuk} masuk hari ini{gs.lama ? ` · ${gs.lama} > 4 jam` : ""}</span></div></Link>
       </section>
 
-      <section className="stats">
-        <button className="stat" onClick={() => open("karyawan")}><Count className="num" value={r4} /><div className="l">Kendaraan roda empat</div><div className="d">{dl(r4, r4h[11])}</div><Spark vals={r4h} /><div className="more">Lihat rincian →</div></button>
-        <button className="stat" onClick={() => open("motor")}><Count className="num" value={mo} /><div className="l">Motor masuk</div><div className="d">{dl(mo, moh[11])}</div><Spark vals={moh} /><div className="more">Lihat rincian →</div></button>
-        <Link className="stat" href="/kejadian" style={{ textDecoration: "none" }}><Count className="num" value={inc} /><div className="l">Kejadian tercatat</div><div className="d">{incOn.length} kategori</div>
-          <div className="stack" aria-hidden="true">{incOn.map((i, j) => <i key={i.category} style={{ flex: i.value, ["--o" as string]: 1 - j * 0.15 }} title={`${i.category}: ${i.value}`}></i>)}</div>
-          <div className="stackl">{incOn.slice(0, 3).map((i) => `${i.category} ${i.value}`).join(" · ") || "Belum ada kejadian"}</div><div className="more">Buka kejadian →</div></Link>
-        <Link className="stat" href="/kejadian" style={{ textDecoration: "none" }}><div className="num"><Count value={pc} d={2} /><span style={{ fontSize: ".45em" }}>%</span></div><div className="l">Checkpoint patroli</div><div className="d">{fmt(D.patrol.target_checkpoint - D.patrol.actual_checkpoint)} dari {fmt(D.patrol.target_checkpoint)} terlewat</div><div className="meter"><i style={{ width: `${pc}%` }}></i></div><div className="more">Buka patroli →</div></Link>
-      </section>
-
-      <section className="sec">
-        <div className="sechead"><div><h2>Sebulan di gerbang</h2><p className="sub">Kendaraan roda empat per hari. Titik merah menandai kejadian atau temuan. Arahkan kursor, atau pakai tombol panah.</p></div><button className="btn q" onClick={() => open("karyawan")}>Rincian per kategori</button></div>
+      <section className="dcard c8">
+        <div className="dch"><h2>Sebulan di gerbang</h2><button className="btn q sm" onClick={() => open("karyawan")}>Rincian per kategori</button></div>
         <Strip D={D} sel={sel} setSel={setSel} />
         <DayDetail D={D} sel={sel} />
       </section>
 
-      <section className="sec" id="todo">
-        <div className="sechead"><div><h2>Perlu dicek</h2><p className="sub">Beberapa bisa langsung diselesaikan dari sini.</p></div></div>
-        <Todo D={D} />
+      <div className="c4 dstack">
+        <section className="dcard" id="todo">
+          <div className="dch"><h2>Perlu dicek</h2>{ch.length > 0 && <span className="g-tag bad">{ch.length}</span>}</div>
+          <Todo D={D} />
+        </section>
+      <section className="dcard">
+        <div className="dch"><h2>Kejadian</h2><span className="sub" style={{ margin: 0 }}>{name}</span></div>
+        {incOn.length ? (
+          <div className="hbar">{incOn.map((i) => <div className="r" key={i.category}><span>{i.category}</span><span className="t"><i style={{ width: `${(i.value / incOn[0].value) * 100}%` }}></i></span><b>{i.value}</b></div>)}</div>
+        ) : <p className="sub">Belum ada kejadian bulan ini.</p>}
       </section>
+      </div>
+
+      <section className="dcard c6">
+        <div className="dch"><h2>Portal gate · hari ini <span className={`live ${gLive ? "on" : ""}`}><i></i>{gLive ? "LIVE" : "…"}</span></h2><Link className="btn q sm" href="/gate">Detail</Link></div>
+        <div className="mk">
+          <div><b>{gs.masuk}</b><span>Masuk</span></div>
+          <div><b>{gs.keluar}</b><span>Keluar</span></div>
+          <div><b>{gs.dalam}</b><span>Di dalam</span></div>
+          <div className={gs.temuan ? "bad" : ""}><b>{gs.temuan}</b><span>Ada temuan</span></div>
+        </div>
+        <FlowChart today={history ?? []} day={day} />
+        <div className="dleg" style={{ marginTop: 6 }}><span><i style={{ background: "var(--bar)" }}></i>Masuk</span><span><i style={{ background: "#DA291C" }}></i>Keluar</span><span>per jam · rata-rata {gs.avgMs ? fDurMs(gs.avgMs) : "–"} di dalam</span></div>
+      </section>
+
+      <section className="dcard c6">
+        <div className="dch"><h2>Di dalam area</h2><span className="sub" style={{ margin: 0 }}>terlama di atas</span></div>
+        <div className="inl">
+          {(inside ?? []).slice(0, 8).map((g) => (
+            <Link key={g.id} href={`/gate/${g.id}`} className={Date.now() - new Date(g.in_at).getTime() > LONG_MS ? "long" : ""}>
+              <span className="g-plate sm">{g.nopol}</span>
+              <span><b>{g.company_name || "–"}</b><small>{g.driver_name} · {g.in_dept_name || "–"}</small></span>
+              <span className="dur">{fDurShort(g.in_at)}</span>
+            </Link>
+          ))}
+          {inside && inside.length === 0 && <p className="sub">Tidak ada kendaraan di dalam area.</p>}
+          {inside && inside.length > 8 && <Link href="/gate" className="sub" style={{ display: "block", background: "none", padding: 0, gridColumn: "1/-1" }}>+{inside.length - 8} kendaraan lain →</Link>}
+        </div>
+      </section>
+
+
+      <NcSummaryCard s={nc} />
+      <NcTopCard s={nc} />
 
       <CategoryDrawer D={D} open={!!drawer} k={dk} setK={setDk} onClose={() => setDrawer(null)} />
     </div>

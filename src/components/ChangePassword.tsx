@@ -48,7 +48,7 @@ export function ChangePassword({ email, open, onClose, onDone }: { email: string
     if (error) {
       setErr(/same|different/i.test(error.message) ? "Password baru harus berbeda dari password lama."
         : /weak|short|characters/i.test(error.message) ? `Password terlalu lemah: ${error.message}`
-        : /reauth|nonce/i.test(error.message) ? "Supabase meminta verifikasi tambahan. Minta Master Admin mematikan 'Secure password change' di Authentication → Providers → Email, atau minta reset password."
+        : /reauth|nonce/i.test(error.message) ? "Supabase meminta verifikasi tambahan. Minta Admin G4S / Admin GA mematikan 'Secure password change' di Authentication → Providers → Email, atau minta reset password."
         : error.message);
       return;
     }

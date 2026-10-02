@@ -9,7 +9,7 @@ function Form() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(
-    params.get("e") === "nonaktif" ? "Email dan password benar, tapi akun ini belum diberi akses Security Desk (atau sudah dinonaktifkan). Akun dari aplikasi lain seperti G-C perlu diaktifkan dulu oleh Master Admin di menu Pengguna → Beri akses."
+    params.get("e") === "nonaktif" ? "Email dan password benar, tapi akun ini belum diberi peran (atau sudah dinonaktifkan). Akun perlu diaktifkan dulu oleh Admin G4S / Admin GA di menu Pengguna → Beri akses."
       : params.get("e") === "schema" ? `Data belum bisa dibaca: ${params.get("m") ?? ""}` : ""
   );
   async function submit(e: React.FormEvent) {

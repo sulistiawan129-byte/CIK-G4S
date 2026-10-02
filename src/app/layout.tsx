@@ -8,6 +8,7 @@ import "@fontsource/figtree/500.css";
 import "@fontsource/figtree/600.css";
 import "@fontsource/figtree/700.css";
 import "./globals.css";
+import "./gc.css";
 
 export const metadata: Metadata = {
   title: "Security Desk",
