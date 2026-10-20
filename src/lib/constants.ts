@@ -15,6 +15,17 @@ export const INC_CATS = [
   "Kejadian Lain-lain", "Kegiatan Khusus", "Pelanggaran KDM",
 ];
 
+/** Data harian tambahan (tabel daily_extra) — ikut laporan & sinkron CIKOPS. */
+export type ExtraKey = "timbang" | "non_timbang" | "sekam" | "abu";
+export const EXTRA_CATS: { k: ExtraKey; n: string; u: string }[] = [
+  { k: "timbang", n: "Transporter timbang", u: "unit" },
+  { k: "non_timbang", n: "Transporter non-timbang", u: "unit" },
+  { k: "sekam", n: "Suplai sekam (PT Becis)", u: "unit" },
+  { k: "abu", n: "Buang abu (PT Becis)", u: "unit" },
+];
+/** Kelompok kunjungan team support pengamanan (tabel monthly_extra). */
+export const TEAM_KEYS = ["Team G", "External", "Lingkungan", "G4S"];
+
 export const KPI_OBJ: [string, number][] = [
   ["Internal audit finding", 15], ["Follow up internal audit", 15], ["External audit finding", 15],
   ["Follow up external audit", 15], ["Kepuasan klien", 15], ["NC & komplain", 15], ["Follow up NC & komplain", 10],

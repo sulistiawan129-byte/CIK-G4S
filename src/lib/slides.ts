@@ -3,7 +3,7 @@
  * biasa dikirim ke FFI (1280×720, grafik batang 3D, kotak highlight navy,
  * footer merah). Output berupa HTML string; semua teks dari pengguna di-escape.
  */
-import { CATS, KPI_OBJ, MON, MONTH_ID, dec, esc, fmt, type Cat } from "./constants";
+import { CATS, KPI_OBJ, MON, MONTH_ID, TEAM_KEYS, dec, esc, fmt, type Cat, type ExtraKey } from "./constants";
 import { last13, monthLabelEn, parseMonth } from "./dates";
 import { agg, catHighlights, incOrdered, incTotal, kpiCalc, monthName, monthsOpen, patrolPct } from "./calc";
 import type { MonthData, Site } from "./types";
@@ -117,12 +117,47 @@ function slideKPI(ctx: SlideCtx, page: number) {
   <p style="font-size:13px;color:#444;margin-top:10px">Skor YTD = rata-rata bulan yang sudah dinilai (${k.rows[0].n} bulan) × bobot. Skala 1–5.</p></div>`, page);
 }
 
-export interface SlideDef { n: string; render: (ctx: SlideCtx, page: number) => string; go?: string; cat?: string; patrol?: boolean }
+/** Jumlah per minggu (hari kerja / libur) untuk data harian tambahan. */
+function weekX(D: SlideCtx["D"], keys: ExtraKey[]) {
+  const wd = [0, 0, 0, 0, 0], we = [0, 0, 0, 0, 0];
+  D.days.forEach((x) => { const v = keys.reduce((a, k) => a + (D.extraDaily[k][x.d - 1] || 0), 0); (x.we ? we : wd)[x.wk - 1] += v; });
+  return { wd, we, total: [...wd, ...we].reduce((a, b) => a + b, 0) };
+}
+
+function slideTransporter(ctx: SlideCtx, page: number) {
+  const D = ctx.D, { name, year } = monthName(D.month), wk = ["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4", "Minggu 5"];
+  const t = weekX(D, ["timbang"]), non = weekX(D, ["non_timbang"]).total, b = weekX(D, ["sekam", "abu"]);
+  const sekam = weekX(D, ["sekam"]).total, abu = weekX(D, ["abu"]).total;
+  const chT = bar3d({ labels: wk, series: [{ values: t.wd, ...BLUE }, { values: t.we, ...RED }], W: 584, H: 300, legend: true, labelSize: 12 });
+  const chB = bar3d({ labels: wk, series: [{ values: b.wd, ...BLUE }, { values: b.we, ...RED }], W: 584, H: 300, legend: true, labelSize: 12 });
+  const left = [`Kendaraan timbang ${fmt(t.total)} unit dan non-timbang ${fmt(non)} unit, total ${fmt(t.total + non)} unit transporter material.`,
+    `Selisih timbang ≥ 40 kg: ${fmt(D.extra.selisih_timbang)} kejadian${D.extra.palm_oil ? `, ${fmt(D.extra.palm_oil)} di antaranya kendaraan Palm Oil / Fat Blend` : ""}.`];
+  const right = [`Suplai sekam ${fmt(sekam)} unit dan buang abu ${fmt(abu)} unit, total ${fmt(sekam + abu)} kendaraan biomas.`];
+  return frame(ctx, `TRANSPORTER MATERIAL & BIOMAS ${name.toUpperCase()} ${year}`,
+    `<div class="pan" style="left:0;top:92px;width:600px;height:360px"><div class="ct">KENDARAAN TIMBANG PER MINGGU<br>PERIODE ${name.toUpperCase()} ${year}</div>${chT}</div>
+     <div class="hb" style="left:0;top:452px;width:600px;height:216px">${hl(left.map(esc), "HIGHLIGHTS")}</div>
+     <div class="pan" style="left:680px;top:92px;width:600px;height:360px"><div class="ct">BIOMAS PT BECIS (SEKAM + ABU)<br>PERIODE ${name.toUpperCase()} ${year}</div>${chB}</div>
+     <div class="hb" style="left:680px;top:452px;width:600px;height:216px">${hl(right.map(esc), "Highlights", true)}</div>`, page);
+}
+
+function slideVisitIssue(ctx: SlideCtx, page: number) {
+  const D = ctx.D, x = D.extra, c = "text-align:center";
+  const team = `<table><tr>${TEAM_KEYS.map((k) => `<th>${esc(k)}</th>`).join("")}<th>Total</th></tr><tr>${TEAM_KEYS.map((k) => `<td style="${c};font-weight:700">${fmt(x.team[k] || 0)}</td>`).join("")}<td style="${c};font-weight:800">${fmt(TEAM_KEYS.reduce((a, k) => a + (x.team[k] || 0), 0))}</td></tr></table>
+    <div style="margin-top:10px;background:#F6A99F;padding:10px 16px;font-size:15px;border:1px solid #333"><b>Catatan:</b> ${esc(x.team_note) || "-"}</div>`;
+  const rows = D.issues.map((i, n) => { const [, m, d] = i.day.split("-"); return `<tr><td style="${c}">${n + 1}</td><td style="${c}">${Number(d)} ${MON[Number(m) - 1]}</td><td>${esc(i.category)}</td><td>${esc(i.description)}</td><td style="${c}"><span class="tag" style="color:#fff;background:${i.status === "Open" ? "#C4122F" : "#1C8A4E"}">${i.status}</span></td></tr>`; }).join("");
+  return frame(ctx, "KUNJUNGAN TEAM SUPPORT & ISSUE AREA",
+    `<div style="position:absolute;left:40px;right:40px;top:96px"><h4 style="margin:0 0 8px">Kunjungan team support pengamanan</h4>${team}
+     <h4 style="margin:22px 0 8px">Issue area</h4><table style="font-size:14px"><tr><th>No</th><th>Tanggal</th><th>Jenis</th><th>Kejadian</th><th>Status</th></tr>${rows || '<tr><td colspan="5" style="text-align:center">Tidak ada issue area bulan ini.</td></tr>'}</table></div>`, page);
+}
+
+export interface SlideDef { n: string; render: (ctx: SlideCtx, page: number) => string; go?: string; cat?: string; patrol?: boolean; extra?: boolean }
 export const SLIDES: SlideDef[] = [
   { n: "Cuti & sakit", render: slideLeave, go: "/personel" },
   { n: "Kejadian", render: slideInc, go: "/kejadian" },
   ...CATS.map((c) => ({ n: c.n, render: (ctx: SlideCtx, p: number) => slideCat(ctx, c, p), cat: c.k })),
   { n: "Patroli", render: slidePatrol, patrol: true, go: "/kejadian" },
+  { n: "Transporter & biomas", render: slideTransporter, go: "/harian", extra: true },
+  { n: "Kunjungan & issue area", render: slideVisitIssue, go: "/kejadian", extra: true },
   { n: "Need improvement", render: slideNI, go: "/personel" },
   { n: "KPI", render: slideKPI, go: "/kpi" },
 ];
@@ -132,6 +167,7 @@ import { checks } from "./calc";
 export function slideOk(D: MonthData, s: SlideDef, ch = checks(D)): boolean {
   const m0 = parseMonth(D.month).m0;
   if (s.patrol) return !!D.patrol.target_checkpoint;
+  if (s.extra) return D.extraReady && (s.go === "/kejadian" || D.extraDaily.timbang.some((v) => v > 0));
   if (s.cat) return !ch.some((c) => c.go === "/harian");
   if (s.go === "/personel") return !ch.some((c) => c.go === "/personel");
   if (s.go === "/kejadian") return !ch.some((c) => c.go === "/kejadian" && !c.title.startsWith("Data patroli"));

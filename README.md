@@ -19,7 +19,7 @@ Sistem operasional security **dan** kepatuhan transporter (G-C) untuk **FFI Plan
 | Kejadian & patroli | `/kejadian` | Jumlah kejadian per kategori + keterangan, data guard tour |
 | Personel & temuan | `/personel` | Cuti/sakit + backup, need improvement + progres & status |
 | KPI | `/kpi` | Skor 1–5 per objektif per bulan, nilai tahun berjalan |
-| Laporan bulanan | `/laporan` | 10 slide format laporan, catatan highlight, **unduh PowerPoint** |
+| Laporan bulanan | `/laporan` | 12 slide format laporan, catatan highlight, **unduh PowerPoint** |
 | Dashboard NC, Laporan NC, Input NC, Total pemeriksaan, Supplier & tujuan | `/gc/...` | Modul G-C (lihat bagian Penggabungan) |
 | Pengguna | `/pengguna` | (Admin G4S / Admin GA) buat akun, atur peran/site/menu, nonaktifkan, reset password, log aktivitas |
 | Gate transporter | `/gate` | Ringkasan gate (masuk, keluar, di dalam, > 4 jam, temuan, rata-rata durasi), arus per jam, transporter teratas, Gate In/Out, persetujuan SL/SPV, cetak form, laporan NC |
@@ -140,6 +140,20 @@ Layar ini menjaga agar monitor tidak masuk mode tidur, memilih bulan terbaru sec
 
 ---
 
+## Data tambahan laporan & sinkron ke CIKOPS
+
+Supaya laporan manajemen di CIKOPS (FM) terisi otomatis tanpa input ulang, Security Desk menyimpan beberapa angka tambahan yang dulu diketik di CIKOPS:
+
+| Di mana | Isi |
+|---|---|
+| **Data harian** → kelompok *Transporter & biomas* | Transporter timbang, non-timbang, suplai sekam & buang abu (PT Becis) per hari |
+| **Kejadian & patroli** → *Transporter & biomas* | Selisih timbang ≥ 40 kg dan jumlahnya dari kendaraan Palm Oil / Fat Blend (bulanan) |
+| **Kejadian & patroli** → *Kunjungan team support* | Jumlah kunjungan Team G / External / Lingkungan / G4S + catatan |
+| **Kejadian & patroli** → *Issue area* | Tanggal, jenis, deskripsi, status Open/Close |
+| **Laporan bulanan** | 2 slide baru: *Transporter & biomas* dan *Kunjungan & issue area* |
+
+**Setup (sekali):** jalankan `supabase/laporan_cikops.sql` di SQL Editor (setelah `merger_gc.sql`). Tabel lama tidak diubah. File ini juga membuat fungsi baca-saja `security.cikops_report(bulan, site)` yang dipanggil server CIKOPS dengan akun berperan **Management**. Sebelum SQL dijalankan, bagian tambahan ini tidak tampil dan halaman lain tetap berjalan normal.
+
 ## Modul Gate transporter
 
 Digitalisasi form **Ceklist Pemeriksaan Kelengkapan Transporter**: Gate In (kedatangan), daftar kendaraan di dalam area, Gate Out (keberangkatan), persetujuan Shift Leader/Supervisor, cetak form, dan pembuatan laporan pelanggaran ke aplikasi NC.
@@ -189,7 +203,7 @@ src/
     supabase/             klien browser, server, dan service role
     data.ts               ambil data per bulan + langganan realtime + fungsi simpan
     calc.ts               rata-rata, selisih, KPI, daftar "perlu dicek"
-    slides.ts             pembentuk 10 slide laporan (format G4S)
+    slides.ts             pembentuk 12 slide laporan (format G4S)
     constants.ts dates.ts types.ts useDrafts.ts latest.ts
   components/             AppContext (sesi, site, bulan, toast), Shell, komponen UI
   app/

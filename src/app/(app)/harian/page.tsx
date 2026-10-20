@@ -3,7 +3,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppContext";
 import { CategoryDrawer, Loading } from "@/components/ui";
-import { CATS, DOWL, fmt, type CatKey } from "@/lib/constants";
+import { CATS, DOWL, EXTRA_CATS, fmt, type CatKey, type ExtraKey } from "@/lib/constants";
 import { agg, monthName, r4Day } from "@/lib/calc";
 import { firstMonOffset } from "@/lib/dates";
 import { api, debounced } from "@/lib/data";
@@ -64,12 +64,27 @@ function Harian() {
     }, 450, (e) => { setSaving(0); fail(e); });
   }
   function step(k: CatKey, dl: number) { change(k, String(Math.max(0, (parseInt(val(`${sel}:${k}`, D!.daily[k][sel - 1])) || 0) + dl))); }
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>, k: CatKey) {
+  function changeX(k: ExtraKey, raw: string) {
+    if (!siteId || !D) return;
+    const v = Math.max(0, parseInt(raw) || 0);
+    const key = `${sel}:${k}`, day = x.iso, i = sel - 1;
+    set(key, raw);
+    setD((p) => { if (!p) return p; const ed = { ...p.extraDaily, [k]: [...p.extraDaily[k]] }; ed[k][i] = v; return { ...p, extraDaily: ed }; });
+    setSaving((n) => n + 1);
+    debounced(key, async () => {
+      try { await api.setDailyExtra(siteId, day, k, v); clear(key); setSavedAt(Date.now()); }
+      finally { setSaving((n) => Math.max(0, n - 1)); }
+    }, 450, (e) => { setSaving(0); fail(e); });
+  }
+  function stepX(k: ExtraKey, dl: number) { changeX(k, String(Math.max(0, (parseInt(val(`${sel}:${k}`, D!.extraDaily[k][sel - 1])) || 0) + dl))); }
+  // urutan kolom untuk tombol Enter: kendaraan & visitor, lalu transporter & biomas
+  const ORDER: string[] = [...CATS.map((c) => c.k), ...(D.extraReady ? EXTRA_CATS.map((c) => c.k) : [])];
+  function onKey(e: React.KeyboardEvent<HTMLInputElement>, k: string) {
     if (e.key !== "Enter") return;
     e.preventDefault();
-    const i = CATS.findIndex((c) => c.k === k);
-    if (i < CATS.length - 1) { const n = document.getElementById(`f-${CATS[i + 1].k}`) as HTMLInputElement; n?.focus(); n?.select(); return; }
-    if (sel < D!.days.length) { setSel(sel + 1); toast(`Lanjut ke ${sel + 1} ${name}`); setTimeout(() => { const n = document.getElementById(`f-${CATS[0].k}`) as HTMLInputElement; n?.focus(); n?.select(); }, 30); }
+    const i = ORDER.indexOf(k);
+    if (i < ORDER.length - 1) { const n = document.getElementById(`f-${ORDER[i + 1]}`) as HTMLInputElement; n?.focus(); n?.select(); return; }
+    if (sel < D!.days.length) { setSel(sel + 1); toast(`Lanjut ke ${sel + 1} ${name}`); setTimeout(() => { const n = document.getElementById(`f-${ORDER[0]}`) as HTMLInputElement; n?.focus(); n?.select(); }, 30); }
   }
 
   return (
@@ -77,7 +92,7 @@ function Harian() {
       <section>
         <div className="eyebrow">Data harian</div>
         <h1>Isi per hari, sekali di akhir shift malam</h1>
-        <p className="lede">Pilih tanggal, isi lima angka, tekan Enter untuk pindah kolom. Di kolom terakhir, Enter membuka hari berikutnya. Tersimpan otomatis.</p>
+        <p className="lede">Pilih tanggal, isi angkanya, tekan Enter untuk pindah kolom. Di kolom terakhir, Enter membuka hari berikutnya. Tersimpan otomatis.</p>
         <div className="fillbar" style={{ marginTop: 20 }}><span><b>{filled}</b> dari {past} hari terisi</span><div className="t"><i style={{ width: `${(filled / past) * 100}%` }}></i></div></div>
         {!canWrite && <p className="readonly-note" style={{ marginTop: 14 }}>Akun ini hanya bisa melihat data.</p>}
       </section>
@@ -139,6 +154,28 @@ function Harian() {
                 })}
               </div>
             ))}
+            {D.extraReady && (
+              <div className="dp-group">
+                <div className="dp-gh"><span>Transporter & biomas</span></div>
+                {EXTRA_CATS.map((c) => {
+                  const v = val(`${sel}:${c.k}`, D.extraDaily[c.k][sel - 1]);
+                  const tot = D.extraDaily[c.k].reduce((a, b) => a + b, 0);
+                  return (
+                    <div className="dp-row" key={c.k}>
+                      <label htmlFor={`f-${c.k}`}>
+                        <span className="dp-name">{c.n}</span>
+                        <span className="dp-meta">Total bulan ini {fmt(tot)} {c.u}</span>
+                      </label>
+                      <div className="step">
+                        <button type="button" onClick={() => stepX(c.k, -1)} aria-label={`Kurangi ${c.n}`}>−</button>
+                        <input id={`f-${c.k}`} type="number" min={0} inputMode="numeric" value={v} onChange={(e) => changeX(c.k, e.target.value)} onKeyDown={(e) => onKey(e, c.k)} onFocus={(e) => e.target.select()} />
+                        <button type="button" onClick={() => stepX(c.k, 1)} aria-label={`Tambah ${c.n}`}>+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </fieldset>
 
           <footer className="dp-foot">

@@ -1,16 +1,19 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "./supabase/client";
-import { CATS, INC_CATS, KPI_OBJ, type CatKey } from "./constants";
+import { CATS, EXTRA_CATS, INC_CATS, KPI_OBJ, type CatKey, type ExtraKey } from "./constants";
 import { addMonths, last13, monthDays, monthEnd, parseMonth } from "./dates";
-import type { DayEvent, Improvement, Leave, MonthData, Note, Patrol } from "./types";
+import type { AreaIssue, DayEvent, Improvement, Leave, MonthData, MonthExtra, Note, Patrol } from "./types";
 
 const REALTIME_TABLES = [
   "daily_counts", "day_events", "incident_counts", "patrol_monthly", "leaves",
   "improvements", "kpi_scores", "report_notes", "monthly_baseline",
 ] as const;
+/** Tabel dari laporan_cikops.sql — dilanggan di channel terpisah supaya realtime utama tetap jalan bila SQL belum dijalankan. */
+const EXTRA_TABLES = ["daily_extra", "monthly_extra", "area_issues"] as const;
 
 const emptyPatrol: Patrol = { target_patrol: 0, target_checkpoint: 0, actual_patrol: 0, actual_checkpoint: 0, note: "" };
+const emptyExtra = (): MonthExtra => ({ selisih_timbang: 0, palm_oil: 0, team: {}, team_note: "" });
 
 /** Ambil semua data satu bulan untuk satu site. */
 export async function fetchMonth(siteId: string, month: string): Promise<MonthData> {
@@ -32,6 +35,19 @@ export async function fetchMonth(siteId: string, month: string): Promise<MonthDa
     sb.from("report_notes").select("category,note,weekly_note").eq("site_id", siteId).eq("month", month),
     sb.from("day_events").select("id,day,kind,description,created_at").eq("site_id", siteId).gte("day", month).lte("day", monthEnd(month)).order("created_at"),
   ]);
+  // Data tambahan: kalau tabelnya belum ada (SQL belum dijalankan), halaman tetap jalan tanpa bagian ini.
+  const [xd, xm, xi] = await Promise.all([
+    sb.from("daily_extra").select("day,category,value").eq("site_id", siteId).gte("day", month).lte("day", monthEnd(month)),
+    sb.from("monthly_extra").select("selisih_timbang,palm_oil,team,team_note").eq("site_id", siteId).eq("month", month).maybeSingle(),
+    sb.from("area_issues").select("id,day,category,description,status").eq("site_id", siteId).gte("day", month).lte("day", monthEnd(month)).order("day").order("created_at"),
+  ]);
+  const extraReady = !xd.error && !xm.error && !xi.error;
+  const extraDaily = {} as Record<ExtraKey, number[]>;
+  EXTRA_CATS.forEach((c) => (extraDaily[c.k] = days.map(() => 0)));
+  (extraReady ? xd.data ?? [] : []).forEach((r: { day: string; category: ExtraKey; value: number }) => {
+    const i = Number(r.day.slice(8, 10)) - 1;
+    if (extraDaily[r.category] && i >= 0 && i < days.length) extraDaily[r.category][i] = r.value;
+  });
   const err = [daily, totals, base, inc, pat, lv, ni, kpi, notes, ev].find((r) => r.error);
   if (err?.error) throw new Error(err.error.message);
 
@@ -79,6 +95,9 @@ export async function fetchMonth(siteId: string, month: string): Promise<MonthDa
     improvements: (ni.data ?? []) as Improvement[],
     kpi: kpiGrid, notes: noteMap,
     events: (ev.data ?? []) as DayEvent[],
+    extraReady, extraDaily,
+    extra: extraReady && xm.data ? { ...emptyExtra(), ...(xm.data as MonthExtra) } : emptyExtra(),
+    issues: (extraReady ? xi.data ?? [] : []) as AreaIssue[],
     loadedAt: Date.now(),
   };
 }
@@ -120,6 +139,14 @@ export function useMonthData(siteId: string | null, month: string | null) {
       })
     );
     ch.subscribe((status) => setLive(status === "SUBSCRIBED"));
+    const chx = sb.channel(`site-x-${siteId}-${month}-${Math.random().toString(36).slice(2, 7)}`);
+    EXTRA_TABLES.forEach((t) =>
+      chx.on("postgres_changes", { event: "*", schema: "security", table: t, filter: `site_id=eq.${siteId}` }, () => {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => { load(); setPulse((p) => p + 1); }, 250);
+      })
+    );
+    chx.subscribe();
     const onVis = () => { if (document.visibilityState === "visible") load(); };
     const onOnline = () => load();
     document.addEventListener("visibilitychange", onVis);
@@ -132,6 +159,7 @@ export function useMonthData(siteId: string | null, month: string | null) {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("online", onOnline);
       sb.removeChannel(ch);
+      sb.removeChannel(chx);
     };
   }, [siteId, month, load]);
 
@@ -176,6 +204,14 @@ export const api = {
   addEvent: (site_id: string, day: string, kind: string, description: string) =>
     run(sb().from("day_events").insert({ site_id, day, kind, description })),
   deleteEvent: (id: string) => run(sb().from("day_events").delete().eq("id", id)),
+
+  setDailyExtra: (site_id: string, day: string, category: ExtraKey, value: number) =>
+    run(sb().from("daily_extra").upsert({ site_id, day, category, value })),
+  setMonthExtra: (site_id: string, month: string, x: MonthExtra) =>
+    run(sb().from("monthly_extra").upsert({ site_id, month, ...x })),
+  addIssue: (site_id: string, i: Omit<AreaIssue, "id">) => run(sb().from("area_issues").insert({ site_id, ...i })),
+  updateIssue: (id: string, patch: Partial<AreaIssue>) => run(sb().from("area_issues").update(patch).eq("id", id)),
+  deleteIssue: (id: string) => run(sb().from("area_issues").delete().eq("id", id)),
 };
 
 /** Debounce per kunci — dipakai untuk simpan otomatis saat mengetik. */

@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { Count, Loading } from "@/components/ui";
+import { ExtraSections } from "@/components/ExtraSections";
 import { dec, fmt } from "@/lib/constants";
 import { incTotal, monthName, patrolPct } from "@/lib/calc";
 import { api, debounced } from "@/lib/data";
@@ -105,6 +106,8 @@ export default function Kejadian() {
           </div>
         </div>
       </fieldset>
+
+      <ExtraSections />
     </div>
   );
 }
