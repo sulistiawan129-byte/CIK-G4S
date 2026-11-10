@@ -1,4 +1,5 @@
 "use client";
+import { L } from "@/lib/lang";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMonthData } from "@/lib/data";
 import { latestMonthFor as latestMonth } from "@/lib/latest";
@@ -66,7 +67,7 @@ export function AppProvider({ profile, sites, children, lite }: { profile: Profi
     clearTimeout(tRef.current);
     tRef.current = setTimeout(() => setToastMsg(null), 2600);
   }, []);
-  const fail = useCallback((e: Error) => toast(/row-level security|permission/i.test(e.message) ? "Akun ini tidak punya izin mengubah data." : `Gagal menyimpan: ${e.message}`, "err"), [toast]);
+  const fail = useCallback((e: Error) => toast(/row-level security|permission/i.test(e.message) ? L("Akun ini tidak punya izin mengubah data.", "This account has no permission to change data.") : `${L("Gagal menyimpan", "Could not save")}: ${e.message}`, "err"), [toast]);
 
   const canWrite = isFull(profile.role);
   const canGate = isFull(profile.role) || profile.role === "gate";

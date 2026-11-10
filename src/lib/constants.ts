@@ -1,3 +1,4 @@
+import { L, getUiLang } from "./lang";
 export type CatKey = "karyawan" | "tamu" | "kontraktor" | "motor" | "visitor";
 export interface Cat { k: CatKey; n: string; u: string; t: string; c: string; r4?: boolean }
 
@@ -44,7 +45,36 @@ export const DOWL = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sab
 export { MODULES, ROLE_LABEL } from "./access";
 export type { ModuleKey } from "./access";
 
-export const fmt = (n: number | null | undefined) => Number(n || 0).toLocaleString("id-ID");
-export const dec = (n: number, d = 2) => Number(n).toFixed(d).replace(".", ",");
+export const fmt = (n: number | null | undefined) => Number(n || 0).toLocaleString(getUiLang() === "en" ? "en-US" : "id-ID");
+export const dec = (n: number, d = 2) => (getUiLang() === "en" ? Number(n).toFixed(d) : Number(n).toFixed(d).replace(".", ","));
 export const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+
+/* ───────── Padanan Inggris untuk teks yang tersimpan di database / konstanta ───────── */
+const CAT_EN: Record<CatKey, { n: string; u: string }> = {
+  karyawan: { n: "Employee cars", u: "units" }, tamu: { n: "Guest cars", u: "units" }, kontraktor: { n: "Contractor cars", u: "units" },
+  motor: { n: "Motorcycles", u: "units" }, visitor: { n: "Visitors", u: "people" },
+};
+export const catName = (c: Cat) => L(c.n, CAT_EN[c.k].n);
+export const catUnit = (c: Cat) => L(c.u, CAT_EN[c.k].u);
+const EXTRA_EN: Record<string, string> = { timbang: "Weighed transporters", non_timbang: "Non-weighed transporters", sekam: "Husk supply (PT Becis)", abu: "Ash removal (PT Becis)" };
+export const extraName = (x: { k: string; n: string }) => L(x.n, EXTRA_EN[x.k] ?? x.n);
+const INC_EN: Record<string, string> = {
+  "Lingkungan": "Environment", "Komplain Internal": "Internal complaint", "Komplain Eksternal": "External complaint", "Security Issue": "Security issue",
+  "Lost & Found": "Lost & found", "Kerusakan Fasilitas": "Facility damage", "Kecelakaan/Sakit": "Accident / illness", "Kerusakan Khusus": "Special damage",
+  "External Threat": "External threat", "Kejadian Lain-lain": "Other incidents", "Kegiatan Khusus": "Special activity", "Pelanggaran KDM": "KDM violation",
+};
+export const incLabel = (c: string) => L(c, INC_EN[c] ?? c);
+const KPI_EN = ["Internal audit finding", "Follow up internal audit", "External audit finding", "Follow up external audit", "Client satisfaction", "NC & complaints", "Follow up NC & complaints"];
+export const kpiLabel = (i: number) => L(KPI_OBJ[i][0], KPI_EN[i] ?? KPI_OBJ[i][0]);
+const KIND_EN: Record<string, string> = { Temuan: "Finding", Security: "Security", Personel: "Personnel", Patroli: "Patrol", Kegiatan: "Activity", Lainnya: "Other" };
+export const kindLabel = (k: string) => L(k, KIND_EN[k] ?? k);
+const LEAVE_EN: Record<string, string> = { "Annual Leave": "Annual leave", Sakit: "Sick", "Extra Day Off": "Extra day off", Izin: "Permission" };
+export const leaveLabel = (k: string) => L(k, LEAVE_EN[k] ?? k);
+const STATUS_EN: Record<string, string> = { Open: "Open", Proses: "In progress", Selesai: "Done", Close: "Closed" };
+export const statusLabel = (k: string) => L(k, STATUS_EN[k] ?? k);
+export const monLabel = (i: number) => (getUiLang() === "en" ? MON_EN : MON)[i];
+export const monthLong = (i: number) => (getUiLang() === "en" ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : MONTH_ID)[i];
+const DOW_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], DOWL_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+export const dowShort = (i: number) => (getUiLang() === "en" ? DOW_EN : DOW)[i];
+export const dowLong = (i: number) => (getUiLang() === "en" ? DOWL_EN : DOWL)[i];

@@ -4,6 +4,7 @@
  * footer merah). Output berupa HTML string; semua teks dari pengguna di-escape.
  */
 import { CATS, KPI_OBJ, MON, MONTH_ID, TEAM_KEYS, dec, esc, fmt, type Cat, type ExtraKey } from "./constants";
+import { L, getUiLang, setUiLang } from "./lang";
 import { last13, monthLabelEn, parseMonth } from "./dates";
 import { agg, catHighlights, incOrdered, incTotal, kpiCalc, monthName, monthsOpen, patrolPct } from "./calc";
 import type { MonthData, Site } from "./types";
@@ -170,7 +171,22 @@ export function slideOk(D: MonthData, s: SlideDef, ch = checks(D)): boolean {
   if (s.extra) return D.extraReady && (s.go === "/kejadian" || D.extraDaily.timbang.some((v) => v > 0));
   if (s.cat) return !ch.some((c) => c.go === "/harian");
   if (s.go === "/personel") return !ch.some((c) => c.go === "/personel");
-  if (s.go === "/kejadian") return !ch.some((c) => c.go === "/kejadian" && !c.title.startsWith("Data patroli"));
+  if (s.go === "/kejadian") return !ch.some((c) => c.go === "/kejadian" && c.id !== "patrol");
   if (s.go === "/kpi") return D.kpi.some((r) => r[m0] !== null);
   return true;
+}
+
+const SLIDE_EN: Record<string, string> = {
+  "Cuti & sakit": "Leave & sick", Kejadian: "Incidents", "Mobil karyawan": "Employee cars", "Mobil tamu": "Guest cars", "Mobil kontraktor": "Contractor cars",
+  Motor: "Motorcycles", Visitor: "Visitors", Patroli: "Patrol", "Transporter & biomas": "Transporters & biomass", "Kunjungan & issue area": "Visits & area issues",
+  "Need improvement": "Need improvement", KPI: "KPI",
+};
+/** Nama slide dalam bahasa tampilan. */
+export const slideName = (s: SlideDef) => L(s.n, SLIDE_EN[s.n] ?? s.n);
+
+/** Isi slide laporan selalu berbahasa Indonesia (format laporan ke klien), apa pun bahasa tampilan aplikasi. */
+export function renderSlide(s: SlideDef, ctx: SlideCtx, page: number): string {
+  const prev = getUiLang();
+  setUiLang("id");
+  try { return s.render(ctx, page); } finally { setUiLang(prev); }
 }

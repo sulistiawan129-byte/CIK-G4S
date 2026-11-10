@@ -4,15 +4,16 @@ import { useApp } from "@/components/AppContext";
 import { Count, Loading } from "@/components/ui";
 import { ExtraSections } from "@/components/ExtraSections";
 import { AutoIncidents } from "@/components/AutoIncidents";
-import { dec, fmt } from "@/lib/constants";
+import { dec, fmt, incLabel } from "@/lib/constants";
+import { L } from "@/lib/lang";
 import { incTotal, monthName, patrolPct } from "@/lib/calc";
 import { api, debounced } from "@/lib/data";
 import { useDrafts } from "@/lib/useDrafts";
 import type { Patrol } from "@/lib/types";
 
-const PATROL_FIELDS: [keyof Patrol, string][] = [
-  ["target_patrol", "Target patroli"], ["actual_patrol", "Patroli terlaksana"],
-  ["target_checkpoint", "Target checkpoint"], ["actual_checkpoint", "Checkpoint ter-scan"],
+const patrolFields = (): [keyof Patrol, string][] => [
+  ["target_patrol", L("Target patroli", "Patrol target")], ["actual_patrol", L("Patroli terlaksana", "Patrols done")],
+  ["target_checkpoint", L("Target checkpoint", "Checkpoint target")], ["actual_checkpoint", L("Checkpoint ter-scan", "Checkpoints scanned")],
 ];
 
 export default function Kejadian() {
@@ -39,7 +40,7 @@ export default function Kejadian() {
     const v = Math.max(0, cur.value + dl);
     patchInc(cat, { value: v });
     setBumped({ c: cat, n: Date.now() });
-    if (!cur.value && v) toast(`${cat} ditambahkan`);
+    if (!cur.value && v) toast(L(`${incLabel(cat)} ditambahkan`, `${incLabel(cat)} added`));
   }
   function patchPatrol(k: keyof Patrol, raw: string) {
     if (!siteId || !D) return;
@@ -57,10 +58,10 @@ export default function Kejadian() {
   return (
     <div className="page enter">
       <section>
-        <div className="eyebrow">Kejadian & patroli</div>
-        <h1><Count value={incTotal(D)} /> kejadian bulan ini</h1>
-        <p className="lede">Ubah jumlah dengan tombol − dan +. Keterangan cukup satu kalimat; kalimat ini yang masuk ke highlights laporan.</p>
-        {!canWrite && <p className="readonly-note" style={{ marginTop: 14 }}>Akun ini hanya bisa melihat data.</p>}
+        <div className="eyebrow">{L("Kejadian & patroli", "Incidents & patrol")}</div>
+        <h1><Count value={incTotal(D)} /> {L("kejadian bulan ini", "incidents this month")}</h1>
+        <p className="lede">{L("Ubah jumlah dengan tombol − dan +. Keterangan cukup satu kalimat; kalimat ini yang masuk ke highlights laporan.", "Change the count with the − and + buttons. One sentence is enough for the note; it goes into the report highlights.")}</p>
+        {!canWrite && <p className="readonly-note" style={{ marginTop: 14 }}>{L("Akun ini hanya bisa melihat data.", "This account can only view data.")}</p>}
       </section>
 
       <fieldset className="sec ro" disabled={!canWrite}>
@@ -69,14 +70,14 @@ export default function Kejadian() {
             const p = D.incPrev[i.category];
             return (
               <li key={i.category}>
-                <div><b>{i.category}</b>{p !== null && p !== undefined && <div className="sub" style={{ margin: 0 }}>{prevName}: {p} · {i.value < p ? <span className="dn">turun {p - i.value}</span> : <span className="upc">naik {i.value - p}</span>}</div>}</div>
+                <div><b>{incLabel(i.category)}</b>{p !== null && p !== undefined && <div className="sub" style={{ margin: 0 }}>{prevName}: {p} · {i.value < p ? <span className="dn">{L("turun", "down")} {p - i.value}</span> : <span className="upc">{L("naik", "up")} {i.value - p}</span>}</div>}</div>
                 <div className="step">
-                  <button type="button" onClick={() => stepInc(i.category, -1)} aria-label="Kurangi">−</button>
-                  <input key={bumped?.c === i.category ? bumped.n : 0} className={bumped?.c === i.category ? "bump" : ""} type="number" min={0} value={i.value} aria-label={`Jumlah ${i.category}`} onChange={(e) => patchInc(i.category, { value: Math.max(0, parseInt(e.target.value) || 0) }, 500)} />
-                  <button type="button" onClick={() => stepInc(i.category, 1)} aria-label="Tambah">+</button>
+                  <button type="button" onClick={() => stepInc(i.category, -1)} aria-label={L("Kurangi", "Decrease")}>−</button>
+                  <input key={bumped?.c === i.category ? bumped.n : 0} className={bumped?.c === i.category ? "bump" : ""} type="number" min={0} value={i.value} aria-label={`${L("Jumlah", "Count")} ${incLabel(i.category)}`} onChange={(e) => patchInc(i.category, { value: Math.max(0, parseInt(e.target.value) || 0) }, 500)} />
+                  <button type="button" onClick={() => stepInc(i.category, 1)} aria-label={L("Tambah", "Increase")}>+</button>
                 </div>
                 <div className="prop"><i style={{ width: `${(i.value / mx) * 100}%` }}></i></div>
-                <input className={`inline ket ${!val(`note:${i.category}`, i.note) ? "need" : ""}`} value={val(`note:${i.category}`, i.note)} placeholder="Tulis keterangan singkat" aria-label={`Keterangan ${i.category}`}
+                <input className={`inline ket ${!val(`note:${i.category}`, i.note) ? "need" : ""}`} value={val(`note:${i.category}`, i.note)} placeholder={L("Tulis keterangan singkat", "Write a short note")} aria-label={`${L("Keterangan", "Note")} ${incLabel(i.category)}`}
                   onChange={(e) => { set(`note:${i.category}`, e.target.value); patchInc(i.category, { note: e.target.value }, 600); }} />
               </li>
             );
@@ -84,8 +85,8 @@ export default function Kejadian() {
         </ul>
         {off.length > 0 && (
           <div>
-            <p className="sub" style={{ margin: "0 0 10px" }}>Tanpa kejadian bulan ini. Klik untuk menambah:</p>
-            <div className="chips">{off.map((i) => <button type="button" key={i.category} onClick={() => stepInc(i.category, 1)}>+ {i.category}</button>)}</div>
+            <p className="sub" style={{ margin: "0 0 10px" }}>{L("Tanpa kejadian bulan ini. Klik untuk menambah:", "No incidents this month. Click to add:")}</p>
+            <div className="chips">{off.map((i) => <button type="button" key={i.category} onClick={() => stepInc(i.category, 1)}>+ {incLabel(i.category)}</button>)}</div>
           </div>
         )}
       </fieldset>
@@ -93,18 +94,18 @@ export default function Kejadian() {
       <AutoIncidents />
 
       <fieldset className="sec ro" disabled={!canWrite}>
-        <div><h2>Patroli</h2><p className="sub">Salin dari rekap sistem guard tour.</p></div>
+        <div><h2>{L("Patroli", "Patrol")}</h2><p className="sub">{L("Salin dari rekap sistem guard tour.", "Copy from the guard tour system recap.")}</p></div>
         <div className="split">
           <div className="pat">
-            {PATROL_FIELDS.map(([k, l]) => (
+            {patrolFields().map(([k, l]) => (
               <div key={k}><label htmlFor={`p-${k}`}>{l}</label><input id={`p-${k}`} type="number" min={0} value={val(`pat:${k}`, D.patrol[k] as number)} onChange={(e) => patchPatrol(k, e.target.value)} /></div>
             ))}
           </div>
           <div>
             <div className="num" style={{ fontSize: 64 }}>{dec(pc)}<span style={{ fontSize: ".45em" }}>%</span></div>
             <div className="meter big"><i style={{ width: `${pc}%` }}></i></div>
-            <div className="sub">{fmt(D.patrol.target_checkpoint - D.patrol.actual_checkpoint)} checkpoint terlewat</div>
-            <label htmlFor="p-note" style={{ display: "block", fontSize: 13, fontWeight: 600, margin: "20px 0 6px" }}>Catatan untuk laporan</label>
+            <div className="sub">{fmt(D.patrol.target_checkpoint - D.patrol.actual_checkpoint)} {L("checkpoint terlewat", "checkpoints missed")}</div>
+            <label htmlFor="p-note" style={{ display: "block", fontSize: 13, fontWeight: 600, margin: "20px 0 6px" }}>{L("Catatan untuk laporan", "Notes for the report")}</label>
             <textarea id="p-note" className="inline" value={val("pat:note", D.patrol.note)} onChange={(e) => patchPatrol("note", e.target.value)} />
           </div>
         </div>

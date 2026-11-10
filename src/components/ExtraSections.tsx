@@ -6,7 +6,8 @@
  */
 import { useRef, useState } from "react";
 import { useApp } from "@/components/AppContext";
-import { EXTRA_CATS, INC_CATS, TEAM_KEYS, fmt } from "@/lib/constants";
+import { EXTRA_CATS, INC_CATS, TEAM_KEYS, extraName, fmt, incLabel, statusLabel } from "@/lib/constants";
+import { L } from "@/lib/lang";
 import { monthEnd } from "@/lib/dates";
 import { api, debounced } from "@/lib/data";
 import { useDrafts } from "@/lib/useDrafts";
@@ -28,8 +29,8 @@ export function ExtraSections() {
   if (!D.extraReady) {
     return (
       <section className="sec">
-        <h2>Transporter, kunjungan & issue area</h2>
-        <p className="sub">Bagian ini aktif setelah admin menjalankan <b>supabase/laporan_cikops.sql</b> di Supabase.</p>
+        <h2>{L("Transporter, kunjungan & issue area", "Transporters, visits & area issues")}</h2>
+        <p className="sub">{L("Bagian ini aktif setelah admin menjalankan", "This section is enabled after the admin runs")} <b>supabase/laporan_cikops.sql</b> {L("di Supabase.", "in Supabase.")}</p>
       </section>
     );
   }
@@ -49,7 +50,7 @@ export function ExtraSections() {
   async function addIssue() {
     if (!siteId || !D || !desc.trim()) return;
     const d = day || (new Date().toISOString().slice(0, 7) === D.month.slice(0, 7) ? new Date().toISOString().slice(0, 10) : D.month);
-    try { await api.addIssue(siteId, { day: d, category: cat, description: desc.trim(), status }); setDesc(""); toast("Issue area ditambahkan"); } catch (e) { fail(e as Error); }
+    try { await api.addIssue(siteId, { day: d, category: cat, description: desc.trim(), status }); setDesc(""); toast(L("Issue area ditambahkan", "Area issue added")); } catch (e) { fail(e as Error); }
   }
   function toggle(i: AreaIssue) {
     const s: AreaIssue["status"] = i.status === "Open" ? "Close" : "Open";
@@ -62,48 +63,48 @@ export function ExtraSections() {
   return (
     <>
       <fieldset className="sec ro" disabled={!canWrite}>
-        <div><h2>Transporter & biomas</h2><p className="sub">Jumlah harian diisi di menu Data harian. Di sini cukup dua angka bulanan.</p></div>
+        <div><h2>{L("Transporter & biomas", "Transporters & biomass")}</h2><p className="sub">{L("Jumlah harian diisi di menu Data harian. Di sini cukup dua angka bulanan.", "Daily counts are entered in the Daily data menu. Only two monthly figures are needed here.")}</p></div>
         <div className="totals">
-          {EXTRA_CATS.map((c) => <div className="tot" key={c.k}><div className="num">{fmt(tot(c.k))}</div><div className="l">{c.n}</div></div>)}
+          {EXTRA_CATS.map((c) => <div className="tot" key={c.k}><div className="num">{fmt(tot(c.k))}</div><div className="l">{extraName(c)}</div></div>)}
         </div>
         <div className="pat">
-          <div><label htmlFor="x-sel">Selisih timbang ≥ 40 kg</label><input id="x-sel" type="number" min={0} value={val("x:sel", D.extra.selisih_timbang)} onChange={(e) => patch({ selisih_timbang: n(e.target.value) }, "x:sel", e.target.value)} /></div>
-          <div><label htmlFor="x-po">dari kendaraan Palm Oil / Fat Blend</label><input id="x-po" type="number" min={0} value={val("x:po", D.extra.palm_oil)} onChange={(e) => patch({ palm_oil: n(e.target.value) }, "x:po", e.target.value)} /></div>
+          <div><label htmlFor="x-sel">{L("Selisih timbang ≥ 40 kg", "Weighbridge gap ≥ 40 kg")}</label><input id="x-sel" type="number" min={0} value={val("x:sel", D.extra.selisih_timbang)} onChange={(e) => patch({ selisih_timbang: n(e.target.value) }, "x:sel", e.target.value)} /></div>
+          <div><label htmlFor="x-po">{L("dari kendaraan Palm Oil / Fat Blend", "out of Palm Oil / Fat Blend vehicles")}</label><input id="x-po" type="number" min={0} value={val("x:po", D.extra.palm_oil)} onChange={(e) => patch({ palm_oil: n(e.target.value) }, "x:po", e.target.value)} /></div>
         </div>
       </fieldset>
 
       <fieldset className="sec ro" disabled={!canWrite}>
-        <div><h2>Kunjungan team support pengamanan</h2><p className="sub">Jumlah kunjungan per kelompok bulan ini, plus siapa saja yang berkunjung.</p></div>
+        <div><h2>{L("Kunjungan team support pengamanan", "Security support team visits")}</h2><p className="sub">{L("Jumlah kunjungan per kelompok bulan ini, plus siapa saja yang berkunjung.", "Number of visits per group this month, plus who visited.")}</p></div>
         <div className="pat">
           {TEAM_KEYS.map((k) => (
             <div key={k}><label htmlFor={`t-${k}`}>{k}</label><input id={`t-${k}`} type="number" min={0} value={val(`t:${k}`, D.extra.team[k] ?? 0)} onChange={(e) => patch({ team: { [k]: n(e.target.value) } }, `t:${k}`, e.target.value)} /></div>
           ))}
         </div>
-        <label htmlFor="t-note" style={{ display: "block", fontSize: 13, fontWeight: 600, margin: "4px 0 6px" }}>Catatan kunjungan</label>
-        <textarea id="t-note" className="inline" value={val("t:note", D.extra.team_note)} placeholder="mis. External: BHABINSA, Polsek … · G4S: Supervisor Area, OH …" onChange={(e) => patch({ team_note: e.target.value }, "t:note", e.target.value)} />
+        <label htmlFor="t-note" style={{ display: "block", fontSize: 13, fontWeight: 600, margin: "4px 0 6px" }}>{L("Catatan kunjungan", "Visit notes")}</label>
+        <textarea id="t-note" className="inline" value={val("t:note", D.extra.team_note)} placeholder={L("mis. External: BHABINSA, Polsek … · G4S: Supervisor Area, OH …", "e.g. External: BHABINSA, local police … · G4S: Area Supervisor, OH …")} onChange={(e) => patch({ team_note: e.target.value }, "t:note", e.target.value)} />
       </fieldset>
 
       <fieldset className="sec ro" disabled={!canWrite}>
-        <div><h2>Issue area</h2><p className="sub">{D.issues.length ? `${D.issues.length} issue bulan ini, ${open} masih open. Klik status untuk mengubah.` : "Belum ada issue area bulan ini."}</p></div>
+        <div><h2>{L("Issue area", "Area issues")}</h2><p className="sub">{D.issues.length ? L(`${D.issues.length} issue bulan ini, ${open} masih open. Klik status untuk mengubah.`, `${D.issues.length} issue(s) this month, ${open} still open. Click the status to change it.`) : L("Belum ada issue area bulan ini.", "No area issues this month.")}</p></div>
         {D.issues.length > 0 && (
           <ul className="rows isl">
             {D.issues.map((i) => (
               <li key={i.id}>
                 <b>{shortDate(i.day)}</b>
-                <span className="sub" style={{ margin: 0 }}>{i.category}</span>
+                <span className="sub" style={{ margin: 0 }}>{incLabel(i.category)}</span>
                 <span>{i.description}</span>
-                <button type="button" className={`btn ${i.status === "Open" ? "red" : "q"}`} onClick={() => toggle(i)}>{i.status}</button>
-                <button type="button" className="btn q" aria-label="Hapus issue" onClick={() => api.deleteIssue(i.id).then(() => toast("Issue dihapus")).catch(fail)}>Hapus</button>
+                <button type="button" className={`btn ${i.status === "Open" ? "red" : "q"}`} onClick={() => toggle(i)}>{statusLabel(i.status)}</button>
+                <button type="button" className="btn q" aria-label={L("Hapus issue", "Delete issue")} onClick={() => api.deleteIssue(i.id).then(() => toast(L("Issue dihapus", "Issue deleted"))).catch(fail)}>{L("Hapus", "Delete")}</button>
               </li>
             ))}
           </ul>
         )}
         <div className="issue-add">
-          <input type="date" className="inline" aria-label="Tanggal" value={day} min={D.month} max={monthEnd(D.month)} onChange={(e) => setDay(e.target.value)} />
-          <select className="inline" aria-label="Jenis" value={cat} onChange={(e) => setCat(e.target.value)}>{INC_CATS.map((c) => <option key={c}>{c}</option>)}</select>
-          <input className="inline" placeholder="Deskripsi singkat…" aria-label="Deskripsi" value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addIssue()} />
-          <select className="inline" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as AreaIssue["status"])}><option>Open</option><option>Close</option></select>
-          <button type="button" className="btn red" onClick={addIssue}>+ Tambah</button>
+          <input type="date" className="inline" aria-label={L("Tanggal", "Date")} value={day} min={D.month} max={monthEnd(D.month)} onChange={(e) => setDay(e.target.value)} />
+          <select className="inline" aria-label={L("Jenis", "Type")} value={cat} onChange={(e) => setCat(e.target.value)}>{INC_CATS.map((c) => <option key={c} value={c}>{incLabel(c)}</option>)}</select>
+          <input className="inline" placeholder={L("Deskripsi singkat…", "Short description…")} aria-label={L("Deskripsi", "Description")} value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addIssue()} />
+          <select className="inline" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value as AreaIssue["status"])}><option value="Open">{statusLabel("Open")}</option><option value="Close">{statusLabel("Close")}</option></select>
+          <button type="button" className="btn red" onClick={addIssue}>+ {L("Tambah", "Add")}</button>
         </div>
       </fieldset>
     </>

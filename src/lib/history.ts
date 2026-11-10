@@ -2,6 +2,7 @@
 /* Riwayat 12 bulan: total bulanan untuk bulan yang belum/tidak punya data harian (dasar grafik tren & laporan).
    Disimpan di security.monthly_baseline. Kategori tambahan (timbang, biomas, pelanggaran, kejadian) butuh supabase/lengkapi_security.sql. */
 import { supabaseBrowser } from "./supabase/client";
+import { L } from "./lang";
 
 export const HIST_CATS = [
   { k: "karyawan", n: "Mobil karyawan" },
@@ -16,6 +17,8 @@ export const HIST_CATS = [
   { k: "kejadian", n: "Kejadian" },
 ] as const;
 export type HistKey = (typeof HIST_CATS)[number]["k"];
+const HIST_EN: Record<HistKey, string> = { karyawan: "Employee cars", tamu: "Guest cars", kontraktor: "Contractor cars", motor: "Motorcycles", visitor: "Visitors", timbang: "Weighed transporters", non_timbang: "Non-weighed transporters", biomas: "Biomass (vehicles)", pelanggaran: "Transporter violations", kejadian: "Incidents" };
+export const histName = (c: { k: HistKey; n: string }) => L(c.n, HIST_EN[c.k]);
 /** Lima kategori pertama bisa berasal dari data harian (monthly_totals). */
 export const FROM_DAILY: HistKey[] = ["karyawan", "tamu", "kontraktor", "motor", "visitor"];
 
@@ -47,7 +50,7 @@ export async function saveHistory(siteId: string, month: string, cat: HistKey, v
   }
   const { error } = await sb.from("monthly_baseline").upsert({ site_id: siteId, month, category: cat, total: Math.max(0, Math.round(value)) }, { onConflict: "site_id,month,category" });
   if (error) {
-    if (/check constraint|monthly_baseline_category_check/i.test(error.message)) throw new Error("Kategori ini belum aktif di database — jalankan supabase/lengkapi_security.sql di Supabase SQL Editor.");
+    if (/check constraint|monthly_baseline_category_check/i.test(error.message)) throw new Error(L("Kategori ini belum aktif di database — jalankan supabase/lengkapi_security.sql di Supabase SQL Editor.", "This category is not active in the database yet — run supabase/lengkapi_security.sql in the Supabase SQL Editor."));
     throw new Error(error.message);
   }
 }

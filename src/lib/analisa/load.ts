@@ -54,11 +54,11 @@ export async function loadSecurityAnalysis(opts: { siteId: string; siteCode: str
     if (!hasRep && Object.keys(totals).length === 0) continue;
     rows[k] = sdToSecData(k, rep, { totals } as SecData);
   }
-  if (failed === keys.length) warnings.push("Data bulanan belum bisa dibaca dari database. Pastikan supabase/laporan_cikops.sql sudah dijalankan.");
-  else if (failed > 0) warnings.push(`${failed} bulan gagal dibaca; grafik tren mungkin bolong.`);
+  if (failed === keys.length) warnings.push(lang === "en" ? "Monthly data could not be read from the database. Make sure supabase/laporan_cikops.sql has been run." : "Data bulanan belum bisa dibaca dari database. Pastikan supabase/laporan_cikops.sql sudah dijalankan.");
+  else if (failed > 0) warnings.push(lang === "en" ? `${failed} month(s) could not be read; the trend chart may have gaps.` : `${failed} bulan gagal dibaca; grafik tren mungkin bolong.`);
 
   const ncRows = nc.error ? [] : ((nc.data ?? []) as NcReportRow[]);
-  if (nc.error) warnings.push("Laporan pelanggaran (NC) belum bisa dibaca; angka pelanggaran memakai riwayat bulanan.");
+  if (nc.error) warnings.push(lang === "en" ? "Violation (NC) reports could not be read; violation figures use the monthly history." : "Laporan pelanggaran (NC) belum bisa dibaca; angka pelanggaran memakai riwayat bulanan.");
   const cases: GcCase[] = ncRows.map((x) => ({
     id: x.id, tanggal: x.tanggal, supplier: x.nama_supplier, nopol: x.no_polisi,
     simHash: x.nomor_identitas || "", simLast4: (x.nomor_identitas || "").slice(-4), jenis: x.temuan_list ?? [],

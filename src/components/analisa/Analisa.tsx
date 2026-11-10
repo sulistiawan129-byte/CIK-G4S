@@ -6,13 +6,14 @@ import { loadSecurityAnalysis } from "@/lib/analisa/load";
 import type { ModuleReport, ReportLang } from "@/lib/analisa/report";
 import { exportSecurityPdf, exportSecurityXlsx } from "@/lib/analisa/exportReport";
 import { monthName } from "@/lib/calc";
+import { getUiLang } from "@/lib/lang";
 import { AnalisaChart } from "./AnalisaChart";
 import "./analisa.css";
 
 export interface AnalysisState { reports: ModuleReport[] | null; warnings: string[]; loading: boolean; error: string | null }
 
 /** Muat analisa untuk bulan yang sedang dibuka; ikut diperbarui (tertunda 3 dtk) saat data bulan berubah. */
-export function useSecurityAnalysis(lang: ReportLang = "id"): AnalysisState {
+export function useSecurityAnalysis(lang: ReportLang = getUiLang()): AnalysisState {
   const { siteId, site, month, D } = useApp();
   const [st, setSt] = useState<AnalysisState>({ reports: null, warnings: [], loading: true, error: null });
   const seq = useRef(0);
@@ -59,7 +60,7 @@ function Lists({ r, L }: { r: ModuleReport; L: (id: string, en: string) => strin
 }
 
 /** Ringkasan di dashboard: judul, KPI, perlu perhatian, temuan, rekomendasi, dua grafik utama. */
-export function AnalisaSummary({ lang = "id", link = true }: { lang?: ReportLang; link?: boolean }) {
+export function AnalisaSummary({ lang = getUiLang(), link = true }: { lang?: ReportLang; link?: boolean }) {
   const { reports, warnings, loading, error } = useSecurityAnalysis(lang);
   const L = (id: string, en: string) => (lang === "en" ? en : id);
   const main = reports?.[0];
@@ -85,7 +86,7 @@ export function AnalisaSummary({ lang = "id", link = true }: { lang?: ReportLang
 }
 
 /** Tombol unduh Excel & PDF (isi sama dengan tampilan analisa). PPT 12 slide ada di menu Laporan bulanan. */
-export function ExportBar({ reports, lang = "id" }: { reports: ModuleReport[] | null; lang?: ReportLang }) {
+export function ExportBar({ reports, lang = getUiLang() }: { reports: ModuleReport[] | null; lang?: ReportLang }) {
   const { site, D, toast, fail } = useApp();
   const [busy, setBusy] = useState<"" | "xlsx" | "pdf">("");
   const L = (id: string, en: string) => (lang === "en" ? en : id);
@@ -106,7 +107,7 @@ export function ExportBar({ reports, lang = "id" }: { reports: ModuleReport[] | 
 }
 
 /** Halaman lengkap: ringkasan + semua bagian rincian (kendaraan per kategori, visitor, transporter, pelanggaran, perusahaan khusus, kejadian & patroli). */
-export function AnalisaFull({ lang = "id" }: { lang?: ReportLang }) {
+export function AnalisaFull({ lang = getUiLang() }: { lang?: ReportLang }) {
   const { reports, warnings, loading, error } = useSecurityAnalysis(lang);
   const L = (id: string, en: string) => (lang === "en" ? en : id);
   if (loading && !reports) return <div className="an-load">{L("Menyusun analisa…", "Preparing analysis…")}</div>;
