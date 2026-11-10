@@ -54,6 +54,17 @@ Aturan ini dijaga di dua tempat: tampilan aplikasi (`src/lib/access.ts`) dan **R
 
 **Total pemeriksaan otomatis.** Jumlah kendaraan yang diperiksa per hari (dasar *True NC Rate*) sekarang dihitung dari Gate In. Input manual di menu Total pemeriksaan tetap bisa dipakai; kalau satu tanggal diisi manual, angka manual yang dipakai. Supaya cocok dengan plant di data NC, kolom `security.sites.gc_plant` diisi nama plant G-C (sudah otomatis "Cikarang" untuk site CIK).
 
+### Gate kendaraan perusahaan (data tersimpan di CIKOPS-FM)
+
+Petugas gate mencatat **mobil perusahaan** (aset GA maupun non-aset, mis. mobil sales) di **`/pos/kendaraan`** — satu aplikasi dengan gate transporter, input NC, dan total pemeriksaan. Halaman `/gate` CIKOPS yang lama dialihkan ke sini.
+
+- Data **tidak** disimpan di database Security Desk. Halaman ini memanggil fungsi RPC publik CIKOPS (`get_active_vehicles_for_gate`, `get_gate_logs_pos`, `open_gate_checkpoint`, `open_gate_checkpoint_manual`, `close_gate_checkpoint`, ...), jadi Gate Log, Beranda, Command Center, dan laporan di CIKOPS langsung terisi.
+- Plat yang **tidak terdaftar di Aset GA** bisa dicatat manual; otomatis didaftarkan sebagai mobil non-aset "dari gate" dan diverifikasi GA di CIKOPS (Fleet → Armada → Dari gate).
+- Layar ruang Security (`/display`) menampilkan ringkasan mobil perusahaan yang sedang di luar.
+- **Variabel Vercel (wajib untuk halaman ini):** `NEXT_PUBLIC_CIKOPS_SUPABASE_URL` dan `NEXT_PUBLIC_CIKOPS_SUPABASE_ANON_KEY` — nilai **publik** yang sama dengan `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` di Vercel CIKOPS-FM. Setelah diisi → Redeploy.
+- **SQL di Supabase CIKOPS (sekali):** `supabase/08_kategori_kendaraan_gate_manual.sql` dan `supabase/09_gate_pos.sql` (repo CIKOPS-FM2026).
+- Akun petugas: menu **Pengguna** → buat akun → peran **Petugas Gate**.
+
 ### Realtime
 
 Semua halaman berlangganan perubahan tabel lewat Supabase Realtime. Begitu satu admin menyimpan angka, layar lain (admin lain, viewer, layar ruang Security) ikut berubah dalam hitungan detik. Indikator **LIVE** di pojok atas menunjukkan koneksi. Sebagai jaring pengaman, data juga dimuat ulang saat tab kembali aktif, saat internet tersambung lagi, dan setiap 2 menit.

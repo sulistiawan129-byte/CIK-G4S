@@ -12,6 +12,7 @@ import { Count, Spark } from "@/components/ui";
 import type { MonthData, Site } from "@/lib/types";
 import { LONG_MS, fDurMs, fDurShort, gateStats, todayWIB, useGateList, useTick, type GateRow } from "@/lib/gate";
 import { FlowChart } from "@/components/gate/Flow";
+import { FleetStrip } from "@/components/gate/FleetStrip";
 
 /** Daftar kendaraan di dalam area yang dipotong sesuai tinggi panel (+n kendaraan lain). */
 function InsideList({ rows }: { rows: GateRow[] }) {
@@ -134,6 +135,7 @@ function Wall({ D, site, live }: { D: MonthData; site: Site | null; live: boolea
           <div className="w-ph"><h3>Portal gate · live</h3><span className="w-leg"><i className="a"></i>Masuk <i className="r"></i>Keluar · per jam</span></div>
           <FlowChart today={history ?? []} day={today} dark />
           <InsideList rows={inside ?? []} />
+          <FleetStrip />
         </div>
       </section>
 

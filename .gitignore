@@ -1,0 +1,13 @@
+# dependensi & hasil build
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# env & lokal
+.env
+.env*.local
+.vercel
+*.log
+.DS_Store

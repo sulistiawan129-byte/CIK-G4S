@@ -30,11 +30,11 @@ export function PosShell({ children }: { children: React.ReactNode }) {
         </div>
       </div></header>
       <nav className="pos-nav" aria-label="Menu petugas">
-        {[["/pos", "Gate in / out"], ["/pos/nc", "Input NC"], ["/pos/pemeriksaan", "Total pemeriksaan"], ["/pos/nc-hari-ini", "NC hari ini"]].map(([h, l]) => (
+        {[["/pos", "Gate in / out"], ["/pos/nc", "Input NC"], ["/pos/pemeriksaan", "Total pemeriksaan"], ["/pos/nc-hari-ini", "NC hari ini"], ["/pos/kendaraan", "Kendaraan perusahaan"]].map(([h, l]) => (
           <Link key={h} href={h} aria-current={(h === "/pos" ? path === "/pos" || /^\/pos\/(baru|[0-9a-f-]{36})/.test(path) : path.startsWith(h)) ? "page" : undefined}>{l}</Link>
         ))}
       </nav>
-      <main className={`pos-main ${path === "/pos" || path.startsWith("/pos/nc") || path.startsWith("/pos/pemeriksaan") ? "wide" : ""}`}>{children}</main>
+      <main className={`pos-main ${path === "/pos" || path.startsWith("/pos/nc") || path.startsWith("/pos/pemeriksaan") || path.startsWith("/pos/kendaraan") ? "wide" : ""}`}>{children}</main>
       <ChangePassword email={profile.email ?? ""} open={pwOpen} onClose={() => setPwOpen(false)} onDone={(m) => toast(m)} />
     </GateBaseCtx.Provider>
   );
