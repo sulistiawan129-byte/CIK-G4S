@@ -1,4 +1,5 @@
-import { CATS, INC_CATS, KPI_OBJ, MONTH_ID, fmt, dec, type Cat, type CatKey } from "./constants";
+import { CATS, INC_CATS, KPI_OBJ, catName, catUnit, fmt, dec, incLabel, monthLong, type Cat, type CatKey } from "./constants";
+import { L } from "./lang";
 import { addMonths, monthsBetween, parseMonth } from "./dates";
 import type { MonthData } from "./types";
 
@@ -18,7 +19,7 @@ export function vsPrev(D: MonthData, k: CatKey) {
   return { t, p, d, pct: p ? (d / p) * 100 : 0 };
 }
 export const r4Day = (D: MonthData, i: number) => CATS.filter((c) => c.r4).reduce((a, c) => a + (D.daily[c.k][i] || 0), 0);
-export const monthName = (key: string) => { const { y, m0 } = parseMonth(key); return { name: MONTH_ID[m0], year: y, prevName: MONTH_ID[(m0 + 11) % 12] }; };
+export const monthName = (key: string) => { const { y, m0 } = parseMonth(key); return { name: monthLong(m0), year: y, prevName: monthLong((m0 + 11) % 12) }; };
 
 export function kpiCalc(D: MonthData) {
   const rows = KPI_OBJ.map((o, i) => {
@@ -34,25 +35,25 @@ export function kpiCalc(D: MonthData) {
   return { rows, final: rows.reduce((a, r) => a + r.w, 0), monthly };
 }
 
-export interface Check { lv: "bad" | "warn"; title: string; sub: string; go: string; fix?: { type: "backup" | "note"; id: string; label: string }[] }
+export interface Check { id?: string; lv: "bad" | "warn"; title: string; sub: string; go: string; fix?: { type: "backup" | "note"; id: string; label: string }[] }
 
 export function checks(D: MonthData): Check[] {
   const o: Check[] = [];
-  const sick = D.leaves.filter((l) => /sakit/i.test(l.type) && !l.backup.trim());
-  if (sick.length) o.push({ lv: "bad", title: `${sick.length} personel sakit tanpa backup`, sub: `${sick.map((s) => s.name || "(tanpa nama)").join(" dan ")}. Isi siapa yang menggantikan.`, go: "/personel", fix: sick.map((l) => ({ type: "backup", id: l.id, label: `Backup untuk ${l.name}` })) });
+  const sick = D.leaves.filter((l) => /sakit|sick/i.test(l.type) && !l.backup.trim());
+  if (sick.length) o.push({ lv: "bad", title: L(`${sick.length} personel sakit tanpa backup`, `${sick.length} sick personnel without a backup`), sub: L(`${sick.map((s) => s.name || "(tanpa nama)").join(" dan ")}. Isi siapa yang menggantikan.`, `${sick.map((s) => s.name || "(no name)").join(" and ")}. Fill in who is covering.`), go: "/personel", fix: sick.map((l) => ({ type: "backup", id: l.id, label: L(`Backup untuk ${l.name}`, `Backup for ${l.name}`) })) });
   const st = D.improvements.filter((n) => n.status !== "Selesai" && !n.progress.trim());
-  if (st.length) o.push({ lv: "bad", title: `${st.length} need improvement belum ada progres`, sub: `Yang tertua sudah ${Math.max(...st.map((n) => monthsBetween(n.opened_month, D.month)))} bulan.`, go: "/personel" });
+  if (st.length) { const mo = Math.max(...st.map((n) => monthsBetween(n.opened_month, D.month))); o.push({ lv: "bad", title: L(`${st.length} need improvement belum ada progres`, `${st.length} need-improvement items without progress`), sub: L(`Yang tertua sudah ${mo} bulan.`, `The oldest is ${mo} months old.`), go: "/personel" }); }
   const ke = D.inc.find((i) => i.category === "Komplain Eksternal");
-  if (ke && ke.value && !ke.note.trim()) o.push({ lv: "warn", title: "Komplain eksternal belum ada keterangan", sub: "Tambahkan satu kalimat sebelum laporan dikirim.", go: "/kejadian", fix: [{ type: "note", id: ke.category, label: "Keterangan komplain eksternal" }] });
+  if (ke && ke.value && !ke.note.trim()) o.push({ lv: "warn", title: L("Komplain eksternal belum ada keterangan", "External complaint has no explanation"), sub: L("Tambahkan satu kalimat sebelum laporan dikirim.", "Add one sentence before the report is sent."), go: "/kejadian", fix: [{ type: "note", id: ke.category, label: L("Keterangan komplain eksternal", "External complaint note") }] });
   const noNote = D.inc.filter((i) => i.value > 0 && !i.note.trim() && i.category !== "Komplain Eksternal");
-  if (noNote.length) o.push({ lv: "warn", title: `${noNote.length} kategori kejadian tanpa keterangan`, sub: noNote.map((i) => i.category).join(", "), go: "/kejadian" });
+  if (noNote.length) o.push({ lv: "warn", title: L(`${noNote.length} kategori kejadian tanpa keterangan`, `${noNote.length} incident categories without a note`), sub: noNote.map((i) => incLabel(i.category)).join(", "), go: "/kejadian" });
   const kr = D.inc.find((i) => i.category === "Kerusakan Fasilitas");
-  if (kr && kr.value) o.push({ lv: "warn", title: `${kr.value} kerusakan fasilitas`, sub: kr.note || "Cek status open/close.", go: "/kejadian" });
+  if (kr && kr.value) o.push({ lv: "warn", title: L(`${kr.value} kerusakan fasilitas`, `${kr.value} facility damage case(s)`), sub: kr.note || L("Cek status open/close.", "Check open/closed status."), go: "/kejadian" });
   const today = new Date();
   const lastDay = D.days.filter((d) => new Date(d.iso + "T23:59:59") < today).length;
   const empty = D.days.slice(0, lastDay).filter((d) => !D.filled[d.d - 1]).length;
-  if (empty) o.push({ lv: "warn", title: `${empty} hari belum diisi`, sub: "Data kendaraan dan visitor harian.", go: "/harian" });
-  if (!D.patrol.target_checkpoint) o.push({ lv: "warn", title: "Data patroli belum diisi", sub: "Salin dari rekap guard tour.", go: "/kejadian" });
+  if (empty) o.push({ lv: "warn", title: L(`${empty} hari belum diisi`, `${empty} day(s) not filled in`), sub: L("Data kendaraan dan visitor harian.", "Daily vehicle and visitor data."), go: "/harian" });
+  if (!D.patrol.target_checkpoint) o.push({ id: "patrol", lv: "warn", title: L("Data patroli belum diisi", "Patrol data not filled in"), sub: L("Salin dari rekap guard tour.", "Copy from the guard tour recap."), go: "/kejadian" });
   return o;
 }
 
@@ -63,21 +64,23 @@ export function catHighlights(D: MonthData, c: Cat) {
   const hi = full.reduce((b, i) => (wk[i] > wk[b] ? i : b), 1), lo = full.reduce((b, i) => (wk[i] < wk[b] ? i : b), 1);
   const wh = a.we.reduce((b, x, i) => (x > a.we[b] ? i : b), 0);
   const n = D.notes[c.k] ?? { note: "", weekly_note: "" };
+  const u = catUnit(c), cn = catName(c).toLowerCase(), pc = dec(Math.abs(v.pct), 1), ad = fmt(Math.abs(v.d));
   return {
     left: [
-      `Total ${c.n.toLowerCase()} ${name} ${year} sebanyak ${fmt(a.total)} ${c.u}, ${v.d < 0 ? "penurunan" : "kenaikan"} ${fmt(Math.abs(v.d))} ${c.u} (${dec(Math.abs(v.pct), 1)}%) dibanding ${prevName} (${fmt(v.p)}).`,
-      `Rata-rata per hari kerja ±${fmt(a.aWD)} ${c.u} dan ±${fmt(a.aWE)} ${c.u} per hari libur.`,
+      L(`Total ${cn} ${name} ${year} sebanyak ${fmt(a.total)} ${u}, ${v.d < 0 ? "penurunan" : "kenaikan"} ${ad} ${u} (${pc}%) dibanding ${prevName} (${fmt(v.p)}).`,
+        `Total ${cn} in ${name} ${year}: ${fmt(a.total)} ${u}, ${v.d < 0 ? "down" : "up"} ${ad} ${u} (${pc}%) vs ${prevName} (${fmt(v.p)}).`),
+      L(`Rata-rata per hari kerja ±${fmt(a.aWD)} ${u} dan ±${fmt(a.aWE)} ${u} per hari libur.`, `Average ±${fmt(a.aWD)} ${u} per weekday and ±${fmt(a.aWE)} ${u} per weekend day.`),
       n.note,
     ].filter(Boolean),
     right: [
-      `Tertinggi di minggu ke-${hi + 1} (${fmt(wk[hi])} ${c.u}), terendah di minggu ke-${lo + 1} (${fmt(wk[lo])} ${c.u}).`,
-      a.tWE ? `Weekend tertinggi di minggu ke-${wh + 1} (${fmt(a.we[wh])} ${c.u}).` : "Tidak ada aktivitas di weekend.",
+      L(`Tertinggi di minggu ke-${hi + 1} (${fmt(wk[hi])} ${u}), terendah di minggu ke-${lo + 1} (${fmt(wk[lo])} ${u}).`, `Highest in week ${hi + 1} (${fmt(wk[hi])} ${u}), lowest in week ${lo + 1} (${fmt(wk[lo])} ${u}).`),
+      a.tWE ? L(`Weekend tertinggi di minggu ke-${wh + 1} (${fmt(a.we[wh])} ${u}).`, `Busiest weekend in week ${wh + 1} (${fmt(a.we[wh])} ${u}).`) : L("Tidak ada aktivitas di weekend.", "No weekend activity."),
       n.weekly_note,
     ].filter(Boolean),
     short: [
-      `${v.d < 0 ? "Turun" : "Naik"} ${fmt(Math.abs(v.d))} ${c.u} (${dec(Math.abs(v.pct), 1)}%) dibanding ${prevName}.`,
-      `Rata-rata ±${fmt(a.aWD)} per hari kerja, ±${fmt(a.aWE)} per hari libur.`,
-      `Minggu tersibuk: ke-${hi + 1} (${fmt(wk[hi])}). Paling sepi: ke-${lo + 1} (${fmt(wk[lo])}).`,
+      L(`${v.d < 0 ? "Turun" : "Naik"} ${ad} ${u} (${pc}%) dibanding ${prevName}.`, `${v.d < 0 ? "Down" : "Up"} ${ad} ${u} (${pc}%) vs ${prevName}.`),
+      L(`Rata-rata ±${fmt(a.aWD)} per hari kerja, ±${fmt(a.aWE)} per hari libur.`, `Average ±${fmt(a.aWD)} per weekday, ±${fmt(a.aWE)} per weekend day.`),
+      L(`Minggu tersibuk: ke-${hi + 1} (${fmt(wk[hi])}). Paling sepi: ke-${lo + 1} (${fmt(wk[lo])}).`, `Busiest week: ${hi + 1} (${fmt(wk[hi])}). Quietest: ${lo + 1} (${fmt(wk[lo])}).`),
       n.note,
     ].filter(Boolean),
   };

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { AppProvider } from "@/components/AppContext";
 import { Shell } from "@/components/Shell";
+import { LanguageProvider } from "@/components/gc/LanguageProvider";
 import type { Profile, Site } from "@/lib/types";
 import { normRole } from "@/lib/access";
 
@@ -21,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: sites } = await sb.from("sites").select("id,code,name,client").order("code");
   return (
     <AppProvider profile={profile as Profile} sites={(sites ?? []) as Site[]} lite={profile.role === "she_dept"}>
-      <Shell>{children}</Shell>
+      <LanguageProvider><Shell>{children}</Shell></LanguageProvider>
     </AppProvider>
   );
 }

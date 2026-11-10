@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, FileSpreadsheet, UploadCloud, FileText, SearchCode, ShieldAlert, CalendarRange } from "lucide-react";
+import { ClipboardList, FileSpreadsheet, UploadCloud, FileText, SearchCode, ShieldAlert, CalendarRange, Building2 } from "lucide-react";
 import { useGcPerm } from "@/components/gc/GcPerm";
 import { useLanguage } from "@/components/gc/LanguageProvider";
 import clsx from "clsx";
@@ -12,6 +12,7 @@ const tabs = [
   { href: "/gc/laporan/analisa", labelKey: "tabs.analisa", icon: SearchCode },
   { href: "/gc/laporan/decision", labelKey: "tabs.decision", icon: ShieldAlert },
   { href: "/gc/laporan/rekap-bulanan", labelKey: "tabs.rekap", icon: CalendarRange },
+  { href: "/gc/laporan/khusus", labelKey: "tabs.khusus", icon: Building2 },
   { href: "/gc/laporan/cetak", labelKey: "tabs.cetak", icon: FileSpreadsheet },
   { href: "/gc/laporan/surat", labelKey: "tabs.surat", icon: FileText },
   { href: "/gc/laporan/import", labelKey: "tabs.import", icon: UploadCloud },

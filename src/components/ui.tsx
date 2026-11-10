@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CATS, dec, fmt, type CatKey } from "@/lib/constants";
+import { CATS, catName, dec, fmt, type CatKey } from "@/lib/constants";
+import { L } from "@/lib/lang";
 import { last13, monthLabelEn } from "@/lib/dates";
 import { agg, catHighlights, monthName, vsPrev } from "@/lib/calc";
 import type { MonthData } from "@/lib/types";
@@ -43,9 +44,9 @@ export function Spark({ vals, W = 220, H = 40 }: { vals: number[]; W?: number; H
 }
 
 export function Loading({ error }: { error?: string | null }) {
-  if (error) return <div className="errbox">Data belum bisa dimuat: {error}</div>;
+  if (error) return <div className="errbox">{L("Data belum bisa dimuat", "Data could not be loaded")}: {error}</div>;
   return (
-    <div className="loading" aria-busy="true" aria-label="Memuat data">
+    <div className="loading" aria-busy="true" aria-label={L("Memuat data", "Loading data")}>
       <div className="sk" style={{ height: 14, width: 120 }} />
       <div className="sk" style={{ height: 52, width: "60%" }} />
       <div className="sk" style={{ height: 18, width: "40%" }} />
@@ -58,7 +59,7 @@ function AnnualChart({ D, k }: { D: MonthData; k: CatKey }) {
   const vals = D.totals13[k], labels = last13(D.month).map(monthLabelEn), W = 540, H = 220, top = 24, base = H - 28;
   const mx = Math.max(...vals, 1) * 1.08, bw = W / vals.length;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Grafik 13 bulan">
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={L("Grafik 13 bulan", "13-month chart")}>
       <line className="ch-g" x1={0} x2={W} y1={base} y2={base} />
       {vals.map((v, i) => {
         const h = (v / mx) * (base - top), x = i * bw + bw * 0.18, w = bw * 0.64, last = i === vals.length - 1;
@@ -77,7 +78,7 @@ function AnnualChart({ D, k }: { D: MonthData; k: CatKey }) {
 function WeeklyChart({ D, k }: { D: MonthData; k: CatKey }) {
   const a = agg(D, k), W = 540, H = 200, top = 22, base = H - 28, mx = Math.max(...a.wd, ...a.we, 1) * 1.12, gw = W / 5;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Grafik mingguan">
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={L("Grafik mingguan", "Weekly chart")}>
       <line className="ch-g" x1={0} x2={W} y1={base} y2={base} />
       {[0, 1, 2, 3, 4].map((i) => (
         <g key={i}>
@@ -90,7 +91,7 @@ function WeeklyChart({ D, k }: { D: MonthData; k: CatKey }) {
               </g>
             );
           })}
-          <text className="ch-t" x={i * gw + gw / 2} y={H - 8} textAnchor="middle">Minggu {i + 1}</text>
+          <text className="ch-t" x={i * gw + gw / 2} y={H - 8} textAnchor="middle">{L("Minggu", "Week")} {i + 1}</text>
         </g>
       ))}
     </svg>
@@ -116,28 +117,28 @@ export function CategoryDrawer({ D, open, k, setK, onClose }: { D: MonthData; op
   return createPortal(
     <>
       <div className={`scrim ${open ? "on" : ""}`} onClick={onClose}></div>
-      <aside className={`drawer ${open ? "on" : ""}`} aria-hidden={!open} aria-label="Rincian kategori">
+      <aside className={`drawer ${open ? "on" : ""}`} aria-hidden={!open} aria-label={L("Rincian kategori", "Category details")}>
         {open && (
           <>
-            <button ref={closeRef} className="dclose" onClick={onClose} aria-label="Tutup">×</button>
-            <div className="eyebrow">Rincian kategori</div>
+            <button ref={closeRef} className="dclose" onClick={onClose} aria-label={L("Tutup", "Close")}>×</button>
+            <div className="eyebrow">{L("Rincian kategori", "Category details")}</div>
             <div className="tabs" style={{ margin: "14px 0 26px" }}>
-              {CATS.map((x) => <button key={x.k} aria-pressed={x.k === k} onClick={() => setK(x.k)}>{x.n}</button>)}
+              {CATS.map((x) => <button key={x.k} aria-pressed={x.k === k} onClick={() => setK(x.k)}>{catName(x)}</button>)}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
               <Count className="num" value={v.t} />
-              <span className={`chip ${v.d < 0 ? "bad" : "ok"}`}>{v.d < 0 ? "▼" : "▲"} {fmt(Math.abs(v.d))} dari {prevName}</span>
+              <span className={`chip ${v.d < 0 ? "bad" : "ok"}`}>{v.d < 0 ? "▼" : "▲"} {fmt(Math.abs(v.d))} {L("dari", "vs")} {prevName}</span>
             </div>
-            <p className="sub">{c.n} · {name} {year}</p>
-            <h3 className="dh">13 bulan terakhir</h3>
+            <p className="sub">{catName(c)} · {name} {year}</p>
+            <h3 className="dh">{L("13 bulan terakhir", "Last 13 months")}</h3>
             <div className="chart"><AnnualChart D={D} k={k} /></div>
-            <h3 className="dh">Per minggu <span className="leg"><i className="b"></i>Hari kerja <i className="w"></i>Hari libur</span></h3>
+            <h3 className="dh">{L("Per minggu", "Per week")} <span className="leg"><i className="b"></i>{L("Hari kerja", "Weekdays")} <i className="w"></i>{L("Hari libur", "Weekends")}</span></h3>
             <div className="chart"><WeeklyChart D={D} k={k} /></div>
-            <h3 className="dh">Highlights otomatis</h3>
+            <h3 className="dh">{L("Highlights otomatis", "Automatic highlights")}</h3>
             <ul className="hl">{h.short.map((t, i) => <li key={i}>{t}</li>)}</ul>
             <div style={{ marginTop: 28, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link className="btn red" href={`/laporan?s=${si}`} onClick={onClose}>Lihat di slide laporan →</Link>
-              <Link className="btn q" href="/harian" onClick={onClose}>Ubah data harian</Link>
+              <Link className="btn red" href={`/laporan?s=${si}`} onClick={onClose}>{L("Lihat di slide laporan", "View in report slide")} →</Link>
+              <Link className="btn q" href="/harian" onClick={onClose}>{L("Ubah data harian", "Edit daily data")}</Link>
             </div>
           </>
         )}

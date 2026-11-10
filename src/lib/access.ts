@@ -3,6 +3,8 @@
  * Satu tempat untuk: daftar peran, menu per peran, halaman awal, dan izin halaman.
  * Aturan yang sama dijaga di database (supabase/merger_gc.sql).
  */
+import { L } from "./lang";
+
 export const ROLES = ["admin_g4s", "admin_ga", "ga_dept", "she_dept", "management", "gate", "display"] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -25,6 +27,9 @@ export const ROLE_DESC: Record<Role, string> = {
   display: "Layar ruang Security",
 };
 
+const ROLE_EN: Record<Role, string> = { admin_g4s: "G4S Admin", admin_ga: "GA Admin", ga_dept: "GA Department", she_dept: "SHE Department", management: "Management", gate: "Gate officer", display: "Security room screen" };
+export const roleLabel = (r: Role) => L(ROLE_LABEL[r], ROLE_EN[r]);
+
 /** Peran lama (sebelum merger_gc.sql dijalankan) dibaca sebagai peran baru. */
 export function normRole(r?: string | null): Role | null {
   if (!r) return null;
@@ -40,23 +45,27 @@ export const allSites = (r?: string | null) => isFull(r) || r === "management";
 
 /* ───────── Menu ───────── */
 export type Group = "utama" | "security" | "transporter";
-export interface Mod { key: string; href: string; label: string; group: Group; icon: string; roles: readonly Role[] }
+export interface Mod { key: string; href: string; label: string; en?: string; group: Group; icon: string; roles: readonly Role[] }
 const FULL = ["admin_g4s", "admin_ga", "ga_dept"] as const;
 export const MODULES: readonly Mod[] = [
-  { key: "ringkasan", href: "/", label: "Dashboard", group: "utama", icon: "ringkasan", roles: [...FULL, "management"] },
-  { key: "harian", href: "/harian", label: "Data harian", group: "security", icon: "harian", roles: FULL },
-  { key: "kejadian", href: "/kejadian", label: "Kejadian & patroli", group: "security", icon: "kejadian", roles: FULL },
-  { key: "personel", href: "/personel", label: "Personel & temuan", group: "security", icon: "personel", roles: FULL },
-  { key: "kpi", href: "/kpi", label: "KPI", group: "security", icon: "kpi", roles: FULL },
-  { key: "laporan", href: "/laporan", label: "Laporan bulanan", group: "security", icon: "laporan", roles: FULL },
-  { key: "gc", href: "/gc", label: "Dashboard NC", group: "transporter", icon: "nc", roles: [...FULL, "she_dept"] },
-  { key: "gate", href: "/gate", label: "Gate in / out", group: "transporter", icon: "gate", roles: [...FULL, "she_dept"] },
-  { key: "gc_laporan", href: "/gc/laporan", label: "Laporan NC", group: "transporter", icon: "laporan", roles: [...FULL, "she_dept"] },
-  { key: "gc_input", href: "/gc/nc/baru", label: "Input NC", group: "transporter", icon: "input", roles: FULL },
-  { key: "gc_pemeriksaan", href: "/gc/pemeriksaan", label: "Total pemeriksaan", group: "transporter", icon: "harian", roles: FULL },
-  { key: "gc_master", href: "/gc/supplier", label: "Supplier & tujuan", group: "transporter", icon: "supplier", roles: FULL },
+  { key: "ringkasan", href: "/", label: "Dashboard", en: "Dashboard", group: "utama", icon: "ringkasan", roles: [...FULL, "management"] },
+  { key: "harian", href: "/harian", label: "Data harian", en: "Daily data", group: "security", icon: "harian", roles: FULL },
+  { key: "kejadian", href: "/kejadian", label: "Kejadian & patroli", en: "Incidents & patrol", group: "security", icon: "kejadian", roles: FULL },
+  { key: "personel", href: "/personel", label: "Personel & temuan", en: "Personnel & findings", group: "security", icon: "personel", roles: FULL },
+  { key: "kpi", href: "/kpi", label: "KPI", en: "KPI", group: "security", icon: "kpi", roles: FULL },
+  { key: "laporan", href: "/laporan", label: "Laporan bulanan", en: "Monthly report", group: "security", icon: "laporan", roles: FULL },
+  { key: "riwayat", href: "/riwayat", label: "Riwayat 12 bulan", en: "12-month history", group: "security", icon: "kpi", roles: FULL },
+  { key: "analisa", href: "/analisa", label: "Analisa otomatis", en: "Automatic analysis", group: "security", icon: "kpi", roles: [...FULL, "management"] },
+  { key: "gc", href: "/gc", label: "Dashboard NC", en: "NC dashboard", group: "transporter", icon: "nc", roles: [...FULL, "she_dept"] },
+  { key: "gate", href: "/gate", label: "Gate in / out", en: "Gate in / out", group: "transporter", icon: "gate", roles: [...FULL, "she_dept"] },
+  { key: "gc_laporan", href: "/gc/laporan", label: "Laporan NC", en: "NC reports", group: "transporter", icon: "laporan", roles: [...FULL, "she_dept"] },
+  { key: "gc_input", href: "/gc/nc/baru", label: "Input NC", en: "Input NC", group: "transporter", icon: "input", roles: FULL },
+  { key: "gc_pemeriksaan", href: "/gc/pemeriksaan", label: "Total pemeriksaan", en: "Total inspections", group: "transporter", icon: "harian", roles: FULL },
+  { key: "gc_master", href: "/gc/supplier", label: "Supplier & tujuan", en: "Suppliers & destinations", group: "transporter", icon: "supplier", roles: FULL },
 ];
 export type ModuleKey = string;
+/** Nama menu dalam bahasa aktif. */
+export const modLabel = (m: Mod) => L(m.label, m.en ?? m.label);
 
 /** Modul yang cocok dengan path (prefix terpanjang). */
 export function moduleOf(path: string): Mod | undefined {
