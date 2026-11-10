@@ -65,6 +65,16 @@ Petugas gate mencatat **mobil perusahaan** (aset GA maupun non-aset, mis. mobil 
 - **SQL di Supabase CIKOPS (sekali):** `supabase/08_kategori_kendaraan_gate_manual.sql` dan `supabase/09_gate_pos.sql` (repo CIKOPS-FM2026).
 - Akun petugas: menu **Pengguna** → buat akun → peran **Petugas Gate**.
 
+### Pelengkap fitur (setara modul Security CIKOPS)
+
+Jalankan **`supabase/lengkapi_security.sql`** di Supabase SQL Editor (sekali, aman diulang). File ini memperluas kategori riwayat bulanan dan membuat tabel `special_companies`.
+
+| Halaman | Fungsi |
+|---|---|
+| **Riwayat 12 bulan** (`/riwayat`) | Isi total bulanan untuk bulan yang belum memakai data harian: mobil karyawan/tamu/kontraktor, motor, visitor, transporter timbang & non-timbang, biomas, pelanggaran, kejadian. Bisa tempel dari Excel. Bulan yang sudah punya data harian terisi otomatis (tidak bisa ditimpa). Dipakai grafik tren 13 bulan dan laporan |
+| **Kejadian & patroli** (`/kejadian`) | Blok baru **"Dihitung otomatis"**: Timbangan (selisih ≥ 40 kg, dari isian transporter) dan Pelanggaran Transporter (dari NC G-C), lengkap dengan total gabungan yang sama dengan Laporan Manajemen CIKOPS |
+| **Perusahaan Khusus** (`/gc/laporan/khusus`) | Pantau PT BECIS, PT JAYA MUKTI MANDIRI (daftar bisa diubah): kasus per bulan, jenis pelanggaran, driver pelanggar (nama langsung dari laporan NC, no. identitas 4 digit terakhir), driver berulang, tren 6 bulan. Dua bahasa (ID/EN) |
+
 ### Realtime
 
 Semua halaman berlangganan perubahan tabel lewat Supabase Realtime. Begitu satu admin menyimpan angka, layar lain (admin lain, viewer, layar ruang Security) ikut berubah dalam hitungan detik. Indikator **LIVE** di pojok atas menunjukkan koneksi. Sebagai jaring pengaman, data juga dimuat ulang saat tab kembali aktif, saat internet tersambung lagi, dan setiap 2 menit.

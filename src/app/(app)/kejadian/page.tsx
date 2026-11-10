@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { Count, Loading } from "@/components/ui";
 import { ExtraSections } from "@/components/ExtraSections";
+import { AutoIncidents } from "@/components/AutoIncidents";
 import { dec, fmt } from "@/lib/constants";
 import { incTotal, monthName, patrolPct } from "@/lib/calc";
 import { api, debounced } from "@/lib/data";
@@ -88,6 +89,8 @@ export default function Kejadian() {
           </div>
         )}
       </fieldset>
+
+      <AutoIncidents />
 
       <fieldset className="sec ro" disabled={!canWrite}>
         <div><h2>Patroli</h2><p className="sub">Salin dari rekap sistem guard tour.</p></div>
