@@ -25,7 +25,7 @@ const groups = (): { t: string; keys: CatKey[]; sum?: boolean }[] => [
 function Harian() {
   const { D, setD, error, siteId, canWrite, toast, fail } = useApp();
   const params = useSearchParams();
-  const [sel, setSel] = useState(1);
+  const [selState, setSel] = useState(1);
   const [flash, setFlash] = useState<{ d: number; n: number } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [dk, setDk] = useState<CatKey>("karyawan");
@@ -46,6 +46,8 @@ function Harian() {
   }, [D, params]);
 
   if (!D) return <Loading error={error} />;
+  // pindah bulan: tanggal terpilih bisa melebihi jumlah hari bulan baru sebelum efek penyetel jalan
+  const sel = Math.max(1, Math.min(selState, D.days.length));
   const x = D.days[sel - 1], { name } = monthName(D.month);
   const today = new Date();
   const past = D.days.filter((d) => new Date(d.iso + "T00:00:00") <= today).length || D.days.length;
