@@ -74,6 +74,7 @@ Jalankan **`supabase/lengkapi_security.sql`** di Supabase SQL Editor (sekali, am
 | **Riwayat 12 bulan** (`/riwayat`) | Isi total bulanan untuk bulan yang belum memakai data harian: mobil karyawan/tamu/kontraktor, motor, visitor, transporter timbang & non-timbang, biomas, pelanggaran, kejadian. Bisa tempel dari Excel. Bulan yang sudah punya data harian terisi otomatis (tidak bisa ditimpa). Dipakai grafik tren 13 bulan dan laporan |
 | **Kejadian & patroli** (`/kejadian`) | Blok baru **"Dihitung otomatis"**: Timbangan (selisih ≥ 40 kg, dari isian transporter) dan Pelanggaran Transporter (dari NC G-C), lengkap dengan total gabungan yang sama dengan Laporan Manajemen CIKOPS |
 | **Perusahaan Khusus** (`/gc/laporan/khusus`) | Pantau PT BECIS, PT JAYA MUKTI MANDIRI (daftar bisa diubah): kasus per bulan, jenis pelanggaran, driver pelanggar (nama langsung dari laporan NC, no. identitas 4 digit terakhir), driver berulang, tren 6 bulan. Dua bahasa (ID/EN) |
+| **Analisa otomatis** (dashboard + `/analisa`) | Temuan, rekomendasi, "perlu perhatian", perbandingan dengan periode lalu & tahun lalu, dan tren 13 bulan untuk kendaraan per kategori, visitor, transporter, pelanggaran, perusahaan khusus, kejadian & patroli. Logikanya disalin dari Laporan Manajemen CIKOPS (`src/lib/analisa/`), sehingga angkanya sama. Data dibaca dari `security.cikops_report` (perlu `laporan_cikops.sql`), riwayat bulanan, dan NC G-C |
 
 ### Realtime
 

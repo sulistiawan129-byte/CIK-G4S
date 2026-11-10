@@ -50,6 +50,7 @@ export const MODULES: readonly Mod[] = [
   { key: "kpi", href: "/kpi", label: "KPI", group: "security", icon: "kpi", roles: FULL },
   { key: "laporan", href: "/laporan", label: "Laporan bulanan", group: "security", icon: "laporan", roles: FULL },
   { key: "riwayat", href: "/riwayat", label: "Riwayat 12 bulan", group: "security", icon: "kpi", roles: FULL },
+  { key: "analisa", href: "/analisa", label: "Analisa otomatis", group: "security", icon: "kpi", roles: [...FULL, "management"] },
   { key: "gc", href: "/gc", label: "Dashboard NC", group: "transporter", icon: "nc", roles: [...FULL, "she_dept"] },
   { key: "gate", href: "/gate", label: "Gate in / out", group: "transporter", icon: "gate", roles: [...FULL, "she_dept"] },
   { key: "gc_laporan", href: "/gc/laporan", label: "Laporan NC", group: "transporter", icon: "laporan", roles: [...FULL, "she_dept"] },

@@ -13,6 +13,7 @@ import { LONG_MS, fDurMs, fDurShort, gateStats, todayWIB, useGateList, useTick }
 import { FlowChart } from "@/components/gate/Flow";
 import { useNcSummary } from "@/lib/gc/summary";
 import { NcSummaryCard, NcTopCard } from "@/components/NcCards";
+import { AnalisaSummary } from "@/components/analisa/Analisa";
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -259,6 +260,9 @@ export default function Home() {
           </div>
         </>)}
       </section>
+
+      {/* ── analisa otomatis (temuan, rekomendasi, perhatian, tren 13 bulan) ── */}
+      <AnalisaSummary />
 
       {/* ── baris 3: pelanggaran transporter ── */}
       <NcSummaryCard s={nc} link={canWrite} />
