@@ -98,7 +98,7 @@ export default function Riwayat() {
           </div>
         )}
         <div className="hist-wrap">
-          <table className="hist">
+          <table className="hist12">
             <thead><tr><th>{L("Bulan", "Month")}</th>{HIST_CATS.map((c) => <th key={c.k}>{histName(c)}</th>)}</tr></thead>
             <tbody>
               {months.map((m) => (

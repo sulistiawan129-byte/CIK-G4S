@@ -3,10 +3,10 @@
 .hist-paste{display:grid;gap:8px;margin-bottom:14px;padding:12px;border:1px dashed var(--line2,#cfcfd4);border-radius:8px}
 .hist-paste p{margin:0;font-size:13px;color:var(--ink2,#555)}
 .hist-wrap{overflow:auto;border:1px solid var(--line,#e3e3e6);border-radius:8px}
-.hist{border-collapse:collapse;width:100%;min-width:980px;font-size:13.5px}
-.hist th,.hist td{padding:6px 8px;border-bottom:1px solid var(--line,#eee);text-align:right;white-space:nowrap}
-.hist thead th{position:sticky;top:0;background:var(--card,#fff);font-size:12px;color:var(--ink2,#666);text-align:right}
-.hist th:first-child{text-align:left;position:sticky;left:0;background:var(--card,#fff)}
-.hist .g-in{width:96px;text-align:right;padding:6px 8px}
-.hist td.auto .g-in{background:var(--bg,#f4f4f6);color:var(--ink2,#666)}
+.hist12{border-collapse:collapse;width:100%;min-width:980px;font-size:13.5px}
+.hist12 th,.hist12 td{padding:6px 8px;border-bottom:1px solid var(--line,#eee);text-align:right;white-space:nowrap}
+.hist12 thead th{position:sticky;top:0;background:var(--surface,#fff);font-size:12px;color:var(--ink2,#666);text-align:right}
+.hist12 th:first-child{text-align:left;position:sticky;left:0;background:var(--surface,#fff)}
+.hist12 .g-in{width:96px;text-align:right;padding:6px 8px}
+.hist12 td.auto .g-in{background:var(--bg,#f4f4f6);color:var(--ink2,#666)}
 .hist-note{font-size:12px;color:var(--ink2,#666);margin-top:10px}
