@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/AppContext";
 import { loadSecurityAnalysis } from "@/lib/analisa/load";
 import type { ModuleReport, ReportLang } from "@/lib/analisa/report";
+import { exportSecurityPdf, exportSecurityXlsx } from "@/lib/analisa/exportReport";
+import { monthName } from "@/lib/calc";
 import { AnalisaChart } from "./AnalisaChart";
 import "./analisa.css";
 
@@ -82,6 +84,27 @@ export function AnalisaSummary({ lang = "id", link = true }: { lang?: ReportLang
   );
 }
 
+/** Tombol unduh Excel & PDF (isi sama dengan tampilan analisa). PPT 12 slide ada di menu Laporan bulanan. */
+export function ExportBar({ reports, lang = "id" }: { reports: ModuleReport[] | null; lang?: ReportLang }) {
+  const { site, D, toast, fail } = useApp();
+  const [busy, setBusy] = useState<"" | "xlsx" | "pdf">("");
+  const L = (id: string, en: string) => (lang === "en" ? en : id);
+  if (!reports || !D || reports[0]?.empty) return null;
+  const { name, year } = monthName(D.month);
+  const meta = { siteName: site?.name ?? "Security Desk", periodLabel: `${name} ${year}`, fileKey: `${site?.code ?? "SD"}-${D.month.slice(0, 7)}`, lang };
+  async function go(kind: "xlsx" | "pdf") {
+    setBusy(kind);
+    try { await (kind === "xlsx" ? exportSecurityXlsx(reports!, meta) : exportSecurityPdf(reports!, meta)); toast(L("File diunduh", "File downloaded")); }
+    catch (e) { fail(e as Error); } finally { setBusy(""); }
+  }
+  return (
+    <div className="an-export">
+      <button className="btn q sm" disabled={!!busy} onClick={() => go("xlsx")}>{busy === "xlsx" ? L("Menyusun…", "Preparing…") : L("Unduh Excel", "Download Excel")}</button>
+      <button className="btn q sm" disabled={!!busy} onClick={() => go("pdf")}>{busy === "pdf" ? L("Menyusun…", "Preparing…") : L("Unduh PDF", "Download PDF")}</button>
+    </div>
+  );
+}
+
 /** Halaman lengkap: ringkasan + semua bagian rincian (kendaraan per kategori, visitor, transporter, pelanggaran, perusahaan khusus, kejadian & patroli). */
 export function AnalisaFull({ lang = "id" }: { lang?: ReportLang }) {
   const { reports, warnings, loading, error } = useSecurityAnalysis(lang);
@@ -90,6 +113,7 @@ export function AnalisaFull({ lang = "id" }: { lang?: ReportLang }) {
   const [main, ...subs] = reports ?? [];
   return (
     <div className="an">
+      <ExportBar reports={reports} lang={lang} />
       {error && <div className="an-warnings">{error}</div>}
       {warnings.map((w) => <div className="an-warnings" key={w}>{w}</div>)}
       {main && (
