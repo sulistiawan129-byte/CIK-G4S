@@ -181,7 +181,7 @@ function Feed({ D }: { D: MonthData }) {
 
 export default function Home() {
   const { D, error, siteId, canWrite } = useApp();
-  const [sel, setSel] = useState(1);
+  const [selState, setSel] = useState(1);
   const [drawer, setDrawer] = useState<CatKey | null>(null);
   const [dk, setDk] = useState<CatKey>("karyawan");
   const inited = useRef<string | null>(null);
@@ -198,6 +198,8 @@ export default function Home() {
   }, [D]);
 
   if (!D) return <Loading error={error} />;
+  // pindah bulan: tanggal terpilih bisa melebihi jumlah hari bulan baru (mis. 31 → Februari) sebelum efek penyetel jalan
+  const sel = Math.max(1, Math.min(selState, D.days.length));
   const { name, year } = monthName(D.month);
   const { m0 } = parseMonth(D.month);
   const ch = checks(D), ok = SLIDES.filter((s) => slideOk(D, s, ch)).length;
